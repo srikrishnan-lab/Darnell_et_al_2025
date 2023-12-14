@@ -13,7 +13,7 @@ using StatsBase # get mean
 
 # load the results
 # Assume that we call this script from the project folder
-output_dir = "output/default"
+output_dir = "results/default"
 emissions = DataFrame(CSVFiles.load(joinpath(output_dir, "emissions.csv")))
 temperature = DataFrame(CSVFiles.load(joinpath(output_dir, "temperature.csv")))
 gmslr = DataFrame(CSVFiles.load(joinpath(output_dir, "gmslr.csv")))
@@ -55,7 +55,7 @@ gmsl_q = compute_norm_quantiles(gmslr, [2000])
 antarctic_q = compute_norm_quantiles(antarctic, [2000])
 greenland_q = compute_norm_quantiles(greenland, [2000])
 other = gsic .+ lw_storage .+ thermal_expansion
-other_q = compute_norm_quantiles(others, [2000])
+other_q = compute_norm_quantiles(other, [2000])
 
 ## make plot
 fig = Figure(resolution=(1000, 690), fontsize=16, figure_padding=20)
