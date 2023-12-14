@@ -115,7 +115,7 @@ function plot_sos_contours(year, threshold, features, key_params, stepsize, limi
     return f
 end
 
-f_imp = Figure(resolution=(700, 400), fontsize=14, figure_padding=(50, 10, 0, 30))
+f_imp = Figure(resolution=(700, 400), fontsize=12, figure_padding=(50, 10, 0, 30))
 
 ga = f_imp[1, 1] = GridLayout()
 gb = f_imp[1, 2] = GridLayout()
