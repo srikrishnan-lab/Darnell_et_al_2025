@@ -3,3 +3,14 @@
 .DS_Store?
 
 .CondaPkg/*
+# data files
+*.csv
+# SLURM input/output files
+*.sh
+*.sh~
+*.err
+*.out
+
+visualization/*.jl
+*/presentation/*
+*.jl~
