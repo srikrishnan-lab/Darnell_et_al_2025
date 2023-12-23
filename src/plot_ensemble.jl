@@ -1,3 +1,13 @@
+#########################################################################
+# plot_ensemble.jl                                                      #
+#                                                                       #
+# Makes plot summarizing series of ensemble projections.                # #                                                                       #
+#                                                                       #
+# This script requires the ensemble output to be present in             #
+#   `results/default` .                                                 #
+#                                                                       #
+#########################################################################
+
 # load environment and packages
 import Pkg
 Pkg.activate(".")
@@ -36,6 +46,7 @@ sort!(cmip_df, :Scenario)
 # convert emissions  from MtCO2/yr to GtCO2/yr
 cmip_df[!, Not(:Scenario)] = cmip_df[!, Not(:Scenario)] ./ 1000
 
+# function to find the 90% prediction interval (optional: after normalizing relative to a year or mean over some normalization period)
 function compute_norm_quantiles(dat, norm_yrs=nothing)
     # normalize to relevant period  defined by norm_yrs
     if !isnothing(norm_yrs)
@@ -49,6 +60,7 @@ function compute_norm_quantiles(dat, norm_yrs=nothing)
     return quantiles
 end
 
+# compute quantiles
 emissions_q = compute_norm_quantiles(emissions)
 temperature_q = compute_norm_quantiles(temperature, 1850:1900)
 gmsl_q = compute_norm_quantiles(gmslr, [2000])
@@ -62,11 +74,13 @@ fig = Figure(resolution=(1000, 690), fontsize=16, figure_padding=20)
 
 gemissions = fig[1:3, 1] = GridLayout()
 
+# plot 1: emissions distribution
 axemissions = Axis(gemissions[1, 1], xlabel="Year", ylabel="CO₂ Emissions (Gt CO₂/yr)")
 leg_med = Makie.lines!(axemissions, parse.(Int64, names(emissions_q)), Vector(emissions_q[2, :]), color=:black)
 leg_ci = Makie.band!(axemissions, parse.(Int64, names(emissions_q)), Vector(emissions_q[1, :]), Vector(emissions_q[3, :]), color=(:gray, 0.2))
 leg_ext = Makie.lines!(axemissions, parse.(Int64, names(emissions_q)), Vector((col -> maximum(col)).(eachcol(emissions))), color=:gray)
 Makie.lines!(axemissions, parse.(Int64, names(emissions_q)), Vector((col -> minimum(col)).(eachcol(emissions))), color=:gray)
+# add in the SSP emissions scenarios for context
 cmip_legend = Vector{LineElement}(undef, nrow(cmip_df)) # initialize storage for legend
 cmip_yrs = parse.(Float64, string.(names(cmip_df[!, Not(:Scenario)])))
 cmip_colors = cgrad(:Dark2_7, 7, categorical=true)
@@ -76,9 +90,11 @@ for i = 1:nrow(cmip_df)
 end
 Makie.xlims!(axemissions, 2000, 2300)
 
+# plot 2: CDF of emissions distribution
 axcdf = Axis(gemissions[2, 1], ylabel="Cumulative Density", xlabel="CO₂ Emissions in 2100 (Gt CO₂/yr)")
 emis_cdf = ecdf(emissions[!, :"2100"])
 emis_range = 0:maximum(emissions[!, :"2100"])
+# add in SSPs for context
 Makie.lines!(axcdf, emis_range, emis_cdf.(emis_range), color=:black)
 for i = 1:nrow(cmip_df)
     Makie.vlines!(axcdf, cmip_df[i, end], color=cmip_colors[i], linestyle=:dash)
@@ -89,7 +105,9 @@ Legend(gemissions[3, 1], [[LineElement(color=:black), LineElement(color=:gray), 
 Label(gemissions[1, 1, TopLeft()], "a", fontsize=22, font=:bold, padding = (10, 35, 20, 0), halign=:right)
 Label(gemissions[2, 1, TopLeft()], "b", fontsize=22, font=:bold, padding = (10, 35, 20, 0), halign=:right)
 
-
+# Plots 3 and 4: 
+#   - plot 3: global mean temperatures
+#   - plot 4: global mean sea level
 axtemps = Axis(fig, xlabel="Year", ylabel="Anomaly from\n1880-1900 Mean (°C)", title="Global Mean Temperature", titlealign=:left, titlesize=18, xminorticks=IntervalsBetween(4))
 axgmsl = Axis(fig, xlabel="Year", ylabel="Anomaly from 2000 (m)", title="Global Mean Sea Level", titlealign=:left, titlesize=18, xminorticks=IntervalsBetween(4))
 fig[1, 2] = axtemps
@@ -111,6 +129,10 @@ hidexdecorations!(axtemps, ticks=false, grid=false, minorgrid=false)
 Label(fig[1, 2, TopLeft()], "c", fontsize=22, font=:bold, padding = (0, 35, 20, 0), halign=:right)
 Label(fig[2, 2, TopLeft()], "d", fontsize=22, font=:bold, padding = (0, 35, 20, 0), halign=:right)
 
+# Plots 4, 5 and 6: 
+#   - plot 4: AIS contribution to GMSLR
+#   - plot 5: GIS contribution to GMSLR
+#   - plot 6: other (non-AIS/GIS) contributions to GMSLR
 axant = Axis(fig, xlabel="Year", ylabel="(m SLE)", title="Antarctic Ice Sheet Melting", titlealign=:left, titlesize=18, xminorticks=IntervalsBetween(4))
 axgreen = Axis(fig, xlabel="Year", ylabel="(m SLE)", title="Greenland Ice Sheet Melting", titlealign=:left, titlesize=18, xminorticks=IntervalsBetween(4))
 axother = Axis(fig, xlabel="Year", ylabel="(m SLE)", title="Sea Level from Other Sources", titlealign=:left, titlesize=18, xminorticks=IntervalsBetween(4))

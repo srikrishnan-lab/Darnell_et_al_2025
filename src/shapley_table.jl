@@ -1,3 +1,13 @@
+#########################################################################
+# shapley_table.jl                                                      #
+#                                                                       #
+# Makes table of important features based on Shapley indices.           # #                                                                       #
+#                                                                       #
+# This script requires the Shapley output to be present in              #
+#   `output/shapley` .                                                  #
+#                                                                       #
+#########################################################################
+
 # load environment and packages
 import Pkg
 Pkg.activate(".")
@@ -5,9 +15,10 @@ Pkg.instantiate()
 
 using CSVFiles # read CSV of Shapley indices
 using DataFrames # data structure for indices
-using PrettyTables
-using Crayons
+using PrettyTables # table formatting
+using Crayons # crayons for highlighting
 
+# define highlight color for important parameters
 crayon_red_light = Crayon(foreground = :white, background = :light_red);
 
 highlight_max = PrettyTables.LatexHighlighter(
@@ -23,4 +34,5 @@ shap_ind[:, 2:end] = reduce(hcat, map(col -> col ./ sum(col), eachcol(shap_ind[:
 shap_ind_sig_idx = findall(map(maximum, eachrow(shap_ind[:, 2:end])) .> 0.05)
 shap_ind = shap_ind[shap_ind_sig_idx, :]
 
+# print LaTeX markup for table
 PrettyTables.pretty_table(shap_ind, backend=Val(:latex); highlighters=highlight_max)

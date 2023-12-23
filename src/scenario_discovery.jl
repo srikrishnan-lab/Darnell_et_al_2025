@@ -1,5 +1,14 @@
-# scenario_discovery.jl: code to take SLR ensemble and construct a classification tree to find high/low outcomes
+#########################################################################
+# scenario_discovery.jl                                                 #
+#                                                                       #
+# Plots factor maps for probabilities of exceeding thresholds.          # #                                                                       #
+#                                                                       #
+# This script requires the ensemble output to be present in             #
+#   `results/peaking`.                                                  #
+#                                                                       #
+#########################################################################
 
+# load environment and packages
 import Pkg
 Pkg.activate(".")
 Pkg.instantiate()
@@ -12,10 +21,10 @@ using MLJ
 using EvoTrees
 using CairoMakie
 
-
+# define random forest classifier object
 classifier = @load EvoTreeClassifier pkg=EvoTrees
 
-# Assume that we call this script from the project folder
+# load ensemble output
 output_dir = "results/peaking"
 slr_out = DataFrame(CSVFiles.load(joinpath(output_dir, "gmslr.csv")))
 ais_out = DataFrame(CSVFiles.load(joinpath(output_dir, "antarctic.csv")))

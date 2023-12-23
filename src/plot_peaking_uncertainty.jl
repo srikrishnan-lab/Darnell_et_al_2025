@@ -1,15 +1,27 @@
+#########################################################################
+# plot_peaking_uncertainty.jl                                           #
+#                                                                       #
+# Makes plot summarizing the impact of emissions peaking uncertainty.   # #                                                                       #
+#                                                                       #
+# This script requires the ensemble output to be present in             #
+#   `results/peaking` .                                                 #
+#                                                                       #
+#########################################################################
+
+# load environment and packages
 import Pkg
 Pkg.activate(".")
 Pkg.instantiate()
 
-using CSVFiles # read CSV of Shapley indices
-using DataFrames # data structure for indices
+using CSVFiles # read CSV files
+using DataFrames # tabular data structure
 using Makie # plotting library
 using CairoMakie
-using ColorSchemes
+using ColorSchemes # color palettes
 using Measures # adjust margins with explicit measures
 using Statistics # get mean function
 
+# load ensemble
 output_dir = "results/peaking"
 slr_out = DataFrame(CSVFiles.load(joinpath(output_dir, "gmslr.csv")))
 ais_out = DataFrame(CSVFiles.load(joinpath(output_dir, "antarctic.csv")))
@@ -30,15 +42,16 @@ for row in axes(slr_out,1 )
     foreach(col -> temp_out[row, col] -= mean(temp_out[row, idx_1850:idx_1900]), axes(slr_out, 2))
 end
 
+# define function to make plot for a given growth/decline quantile threshold (q_thresh)
 function plot_peaking_ensemble(q_thresh, parameters, emissions, slr_out, temp_out, ais_out)
 
+    # find growth/decline quantiles corresponding to q_thresh and filter SOWs
     g_quants = quantile(parameters[!, :gamma_g], [q_thresh, 1-q_thresh])
     d_quants = quantile(parameters[!, :gamma_d], [q_thresh, 1-q_thresh])
 
     low_all_idx = (1:size(slr_out, 1))[(parameters[!, :gamma_d] .> d_quants[2]) .& (parameters[!, :gamma_g] .< g_quants[1])]
 
-    # low_all_idx = findall(maximum.(eachrow(temp_out)) .< 3)
-
+    # define function to plot quantiles of the given value by peak year
     function plot_quantiles(df, params, peak_yrs, idx, label, colors; f=Figure(), limits=(nothing, nothing))
         val_low_all = df[idx, :]
         param_low_all = params[idx, :]
@@ -54,10 +67,13 @@ function plot_peaking_ensemble(q_thresh, parameters, emissions, slr_out, temp_ou
         return f
     end
 
+    # convert AIS threshold from local to global mean temperature
+    # uses the regression fit from the model calibration
     ais_threshold = [15.42 .+ 0.8365 * parameters[i, :antarctic_temp_threshold] - mean(temp_out[i, idx_1850:idx_1900]) for i in low_all_idx]
+
+    # find years where the threshold is triggered and at what temperature
     ais_exceed_yr = Vector{Union{Float64, Nothing}}(undef, length(low_all_idx))
     temp_exceed_max = Vector{Union{Float64, Nothing}}(undef, length(low_all_idx))
-
     for (j, idx) in pairs(low_all_idx)
         exceed_ais = [temp_out[idx, k] > ais_threshold[j] for k in axes(temp_out, 2)]
         exceed_ais_idx = findfirst(exceed_ais)
@@ -67,12 +83,14 @@ function plot_peaking_ensemble(q_thresh, parameters, emissions, slr_out, temp_ou
         end
     end
 
+    # filter AIS exceedances for years in which threshold is triggered
     ais_exceed = hcat(parameters[low_all_idx, :t_peak], ais_exceed_yr)
     ais_exceed_idx = .!(isnothing).(ais_exceed[:, 2])
     ais_exceed = Float64.(ais_exceed[ais_exceed_idx, :])
     temp_all = hcat(parameters[low_all_idx, :t_peak], temp_exceed_max)
     temp_exceed = Float64.(temp_all[ais_exceed_idx, :])
 
+    # make plot
     pk_colors = ColorSchemes.seaborn_colorblind[1:6]
 
     fig = Figure(size=(800, 600), fontsize=14, figure_padding=(10, 20, 10, 10))

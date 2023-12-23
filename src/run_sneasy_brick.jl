@@ -1,3 +1,12 @@
+#########################################################################
+# run_sneasy_brick.jl                                                   #
+#                                                                       #
+# Defines function to run MimiBRICK with SNEASY for the passed in       #
+#    design ensemble.                                                   # 
+#                                                                       #
+#########################################################################
+
+# load packages
 using Mimi
 using MimiSNEASY
 using MimiBRICK

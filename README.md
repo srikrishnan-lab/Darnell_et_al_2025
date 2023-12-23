@@ -31,10 +31,11 @@ CD was partially funded by the College of Agricultural \& Life Sciences, Cornell
 
 - Historical CO<sub>2</sub> emissions data was obtained from the [Global Carbon Project](https://www.globalcarbonproject.org/) 2022.
 - RCP-SSP CO<sub>2</sub> emissions and non-CO<sub>2</sub> radiative forcing projections were obtained from the [CMIP6 SSP database](https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=10).
+- SNEASY-BRICK calibration file, obtained from <https://zenodo.org/records/6626335>. The scripts here are designed to use the `parameters_subsample_sneasybrick.csv` file, which is a burned-in and thinned version; some modifications might be needed if working with the full chain (`parameters_full_chain_sneasybrick.csv`).
 
 ### Output Data
 
-
+- Output ensembles can be found at <https://zenodo.org/records/10373090>. These include CSVs of all of the individual GMSLR components along with the total GMSLR across both the main/full experiment(`default/`) and the peaking uncertainty experiment (`peaking/`).
 
 ## Dependencies
 

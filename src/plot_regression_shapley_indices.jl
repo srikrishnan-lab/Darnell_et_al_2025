@@ -1,3 +1,14 @@
+#########################################################################
+# plot_regression_shapley_indices.jl                                    #
+#                                                                       #
+# Plots grouped Shapley indices over time.                              # #                                                                       #
+#                                                                       #
+# This script requires the Shapley output to be in `output/shapley`.    #
+# If this is not there, or if a different ensemble was generated,       #
+#    run `src/regression_drivers.jl` to recompute.                      #
+#                                                                       #
+#########################################################################
+
 # load environment and packages
 import Pkg
 Pkg.activate(".")
@@ -55,17 +66,5 @@ Plots.xticks!(plt, 2050:25:2200)
 Plots.xlims!((2050, 2200))
 Plots.ylims!((0, 1))
 plot!(size=(800, 400))
-
-#shap_ind_norm = DataFrame(mapcols(x -> x ./ sum(x), shap_ind[!, Not([:feature_name, :group])]), names(shap_group)[2:end])
-#shap_ind_norm.feature_name = shap_ind.feature_name
-#shap_ind_norm.group = shap_ind.group
-#shap_ind_2100 = sort(shap_ind_norm[!, [:feature_name, :mean_2100_sum, :group]], :mean_2100_sum, rev=true)[1:5, :]
-#sort!(shap_ind_2100, :group, rev=true)
-#shap_ind_2150 = sort(shap_ind_norm[!, [:feature_name, :mean_2150_sum, :group]], :mean_2150_sum, rev=true)[1:5, :]
-#sort!(shap_ind_2150, :group, rev=true)
-
-# p_ind2100 = bar(shap_ind_2100[!, :feature_name], shap_ind_2100[!, :mean_2100_sum],group=shap_ind_2100[!, :group], color_palette=group_colors[[1, 3, 5]], xlabel="Parameter", ylabel="Normalized Shapley Index", left_margin=5mm, right_margin=5mm, bottom_margin=30mm, legend=:false, guidefontsize=10, tickfontsize=10, xrotation = 45)
-
-# p_ind2150 = bar(shap_ind_2150[!, :feature_name], shap_ind_2150[!, :mean_2150_sum],group=shap_ind_2150[!, :group], xlabel="Parameter", ylabel="Normalized Shapley Index", color_palette=group_colors[[1, 3, 5]], left_margin=5mm, right_margin=5mm, legend=:false, guidefontsize=10, tickfontsize=8, xrotation = 45)
 
 savefig(plt, "figures/stacked-shapley-index.png")

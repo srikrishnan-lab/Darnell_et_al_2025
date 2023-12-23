@@ -1,11 +1,22 @@
+#########################################################################
+# regression_drivers.jl                                                 #
+#                                                                       #
+# Makes plot summarizing the output ensemble.                           # #                                                                       #
+#                                                                       #
+# This script requires the ensemble output to be present in             #
+#   `results/default` .                                                 #
+#                                                                       #
+#########################################################################
+
+# load environment and packages
 import Pkg
 Pkg.activate(".")
 Pkg.instantiate()
 
-using Random
-using CSVFiles
-using DataFrames
-using Statistics
+using Random # set seed (since this estimator is Monte Carlo-based) and sample
+using CSVFiles # read ensemble output
+using DataFrames # tabular data structure
+using Statistics # compute mean
 using MLJ
 using EvoTrees
 using ShapML

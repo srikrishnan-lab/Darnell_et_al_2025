@@ -1,3 +1,13 @@
+#########################################################################
+# plot_slr_temperatures.jl                                              #
+#                                                                       #
+# Makes plot summarizing the output ensemble.                           # #                                                                       #
+#                                                                       #
+# This script requires the ensemble output to be present in             #
+#   `results/default` .                                                 #
+#                                                                       #
+#########################################################################
+
 # load environment and packages
 import Pkg
 Pkg.activate(".")
@@ -6,13 +16,14 @@ Pkg.instantiate()
 using CSVFiles # read CSVs
 using XLSX # read XL files
 using DataFrames # data structure for indices
-using AlgebraOfGraphics
+using AlgebraOfGraphics # need AoG for density/regression plot
 using AlgebraOfGraphics: density
 using Makie # plotting library
 using CairoMakie
 using Measures # adjust margins with explicit measures
-using StatsBase
+using StatsBase # get mean function and density
 
+# load ensemble
 output_dir = "results/default"
 parameters = DataFrame(CSVFiles.load(joinpath(output_dir, "parameters.csv")))
 emissions = DataFrame(CSVFiles.load(joinpath(output_dir, "emissions.csv")))
@@ -24,6 +35,7 @@ greenland = DataFrame(CSVFiles.load(joinpath(output_dir, "greenland.csv")))
 lw_storage = DataFrame(CSVFiles.load(joinpath(output_dir, "lw_storage.csv")))
 thermal_expansion = DataFrame(CSVFiles.load(joinpath(output_dir, "thermal_expansion.csv")))
 
+# define function to normalize data relative to some normalization period mean
 function normalize_data!(dat, norm_yrs=nothing)
     # normalize to relevant period  defined by norm_yrs
     if !isnothing(norm_yrs)
@@ -40,6 +52,7 @@ normalize_data!(gmslr, [2000])
 normalize_data!(antarctic, [2000])
 normalize_data!(greenland, [2000])
 
+# define function to compute quantiles relative to some normalization period
 function compute_norm_quantiles(dat, norm_yrs=nothing)
     # normalize to relevant period  defined by norm_yrs
     if !isnothing(norm_yrs)
@@ -71,9 +84,12 @@ cmip_df[!, Not(:Scenario)] = cmip_df[!, Not(:Scenario)] ./ 1000
 idx1850 = findfirst(names(temperature) .== "1850")
 idx1900 = findfirst(names(temperature) .== "1900")
 
+# convert AIS threshold from local to global mean temperature
+# uses the regression fit from the model calibration
 ais_threshold = [15.42 .+ 0.8365 * parameters[i, :antarctic_temp_threshold] - mean(temperature[i, idx1850:idx1900]) for i in axes(temperature, 1)]
-ais_exceed_yr = Vector{Union{Float64, Nothing}}(undef, length(ais_threshold))
 
+# find years in which AIS threshold is exceeded
+ais_exceed_yr = Vector{Union{Float64, Nothing}}(undef, length(ais_threshold))
 for j in eachindex(ais_threshold)
     exceed_ais = [temperature[j, k] > ais_threshold[j] for k in axes(temperature, 2)]
     exceed_ais_idx = findfirst(exceed_ais)
@@ -87,10 +103,12 @@ end
 ais_exceed = hcat(parameters[:, :t_peak], ais_exceed_yr)
 ais_exceed[:, 2] = replace(ais_exceed[:, 2], nothing => 2305)
 
+# find cumulative emissions from 2020--2100
 idx2100 = findfirst(names(gmslr) .== "2100")
 idx2020 = findfirst(names(gmslr) .== "2020")
 cum_emissions = [sum(emissions[i, idx2020:idx2100]) for i in 1:nrow(gmslr)]
 
+# label SOWs by peaking year period for density plot
 slr_all = Vector(gmslr[:, idx2100])
 dat = DataFrame(slr=slr_all, emissions=cum_emissions, ais_yr = ais_exceed[:, 2])
 function assign_bin(yr)
@@ -104,9 +122,9 @@ function assign_bin(yr)
         return "After 2100"
     end
 end
-
 dat.ais_bin = assign_bin.(dat.ais_yr)
 
+# make plot
 fig = Figure(size=(600, 800), fontsize=14, figure_padding=10)
 
 # set up layout
@@ -115,11 +133,13 @@ gcd = fig[2, 1] = GridLayout()
 gc = gcd[1, 1] = GridLayout()
 gd = gcd[1, 2] = GridLayout()
 
+# plot emissions time series
 axemissions = Axis(ga[1, 1], xlabel="Year", ylabel="CO₂ Emissions (Gt CO₂/yr)")
 leg_med = Makie.lines!(axemissions, parse.(Int64, names(emissions_q)), Vector(emissions_q[2, :]), color=:black)
 leg_ci = Makie.band!(axemissions, parse.(Int64, names(emissions_q)), Vector(emissions_q[1, :]), Vector(emissions_q[3, :]), color=(:gray, 0.2))
 leg_ext = Makie.lines!(axemissions, parse.(Int64, names(emissions_q)), Vector((col -> maximum(col)).(eachcol(emissions))), color=:gray)
 Makie.lines!(axemissions, parse.(Int64, names(emissions_q)), Vector((col -> minimum(col)).(eachcol(emissions))), color=:gray)
+# add CMIP scenarios for context
 cmip_legend = Vector{LineElement}(undef, nrow(cmip_df)) # initialize storage for legend
 cmip_yrs = parse.(Float64, string.(names(cmip_df[!, Not(:Scenario)])))
 cmip_colors = cgrad(:Dark2_7, 7, categorical=true)
@@ -135,53 +155,9 @@ rowgap!(ga, 5)
 rowsize!(ga, 1, Auto(0.85))
 rowsize!(ga, 2, Auto(0.15))
 
-# axcdf = Axis(fig[3, 1], ylabel="CDF", xlabel="CO₂ Emissions in 2100 (Gt CO₂/yr)")
-# emis_range = 0:maximum(emissions[!, :"2100"])
-# Makie.lines!(axcdf, emis_range, emis_cdf.(emis_range), color=:black)
-# for i = 1:nrow(cmip_df)
-#     Makie.vlines!(axcdf, cmip_df[i, end], color=cmip_colors[i], linestyle=:dash)
-# end
-# Label(fig[3, 1, TopLeft()], "b", fontsize=22, font=:bold, padding = (0, 50, 20, 0), halign=:right)
-
-# axslr = Axis(gb[1,1], xlabel="Year", ylabel="Global Mean Sea Level (m)")
-# color_slr = cgrad(:vik100, [0.1, 0.3, 0.6, 0.9])
-idx_paris = findall(temperature[!, idx2100] .< 2.0) # find Paris consistent SOWs
-# for i in idx_paris
-#     Makie.lines!(axslr, parse.(Int64, names(gmslr)), Vector(gmslr[i, :]), color=cum_emissions[i], colorrange=(800, 6000), colormap=color_slr)
-# end
-# xlims!(2000, 2300)
-# cbtrace = Colorbar(gb[1, 2], limits=(800, 6000), colormap=color_slr, label="Cumulative CO₂ Emissions (Gt CO₂)", vertical=true, flipaxis=false, tellheight=false)
-
-
 Label(ga[1, 1, TopLeft()], "a", fontsize=18, font=:bold, padding = (0, 50, 10, 0), halign=:right)
-# Label(gb[1, 1, TopLeft()], "b", fontsize=18, font=:bold, padding = (0, 50, 10, 0), halign=:right)
 
-# rowsize!(gb, 1, Auto(0.9))
-# rowsize!(gb, 2, Auto(0.1))
-
-# rowsize!(gab, 1, Auto(1.3))
-# rowgap!(gab, 5)
-
-# axscatter = Axis(gc[1,1], xlabel="Global Temperature Anomaly (°C)", ylabel="Global Sea Level Anomaly (m)")
-# colors = cgrad(:vik100, [0.1, 0.5, 0.9])
-# plt =  Makie.scatter!(axscatter, temperature[:,idx2100  ], gmslr[:, idx2100], color=cum_emissions, colormap=colors, markersize=6)
-# cbscatter = Colorbar(gc[1, 2], plt, label="Cumulative CO₂ Emissions (Gt CO₂)")
-
-
-# axtrace = Axis(fig[3:4,2], xlabel="Year", ylabel="Global Sea Level Anomaly (m)")
-# for i in idx_low_emissions
-#     Makie.lines!(axtrace, 2020:2100, Vector(gmslr[i, idx2020:idx2100]), color=parameters[i, :antarctic_temp_threshold], colorrange=(2030, 2050), colormap=cgrad(:Reds))
-# end
-# xlims!(axtrace, (2020, 2100))
-# axright = Axis(fig[3:4, 3], limits=((0, nothing), (0, 1.8)))
-# linkyaxes!(axtrace, axright)
-# Makie.density!(axright, gmslr[:, idx2100],direction=:y)
-# hidedecorations!(axright)
-# hidespines!(axright)
-
-# cbtrace = Colorbar(fig[3:4, 4], limits=(2030, 2050), colormap=:Reds, label="Year In Which Emissions Peak")
-# Label(fig[3, 2, TopLeft()], "d", fontsize=22, font=:bold, padding = (0, 50, 20, 0), halign=:right)
-
+# plot relationship between AIS and cumulative emissions by AIS exceedance period
 ais_labels = ["Before 2050", "2050 -- 2075", "2075 -- 2100", "After 2100"]
 layers = density() * visual(Contour) + linear(interval=:confidence)
 slr_gp = data(dat) *  mapping(:emissions => "Cumulative CO₂ Emissions (Gt CO₂)", :slr => "Global Sea Level Anomaly (m)") * layers  * mapping(color = :ais_bin => sorter(ais_labels) => "AIS Instability Trigger Year")
@@ -190,6 +166,8 @@ legend!(gc[2, 1], ais_trigger, tellwidth=false, tellheight=true, nbanks=2, frame
 
 Label(gc[1, 1, TopLeft()], "b", fontsize=18, font=:bold, padding = (0, 50, 0, 0), halign=:right)
 
+# plot relationship between GMSLR and cumualtive emissions for Paris-consistent SOWs
+idx_paris = findall(temperature[!, idx2100] .< 2.0) # find Paris consistent SOWs
 axparis = Axis(gd[1, 1], xlabel="Cumulative CO₂ Emissions (Gt CO₂)", ylabel="Global Sea Level Anomaly (m)", alignmode=Inside())
 
 colors_paris = cgrad(:vik100, [0.1, 0.5, 0.9], rev=true)
