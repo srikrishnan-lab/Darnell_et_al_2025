@@ -4,9 +4,9 @@
 
 Darnell, Chloe<sup>1</sup>, Rennels, Lisa<sup>2</sup>, Errickson, Frank<sup>3</sup>, Wong, Tony<sup>4</sup>, Srikrishnan, Vivek<sup>1\*</sup>
 
-<sup>1</sup> Department of Biological & Environmental Engineering, Cornell University, Ithaca, New York, USA
-<sup>2</sup> Energy and Resources Group, University of California Berkeley, Berkeley, California, USA
-<sup>3</sup> School of Public and International Affairs, Princeton University, Princeton, New Jersey, USA
+<sup>1</sup> Department of Biological & Environmental Engineering, Cornell University, Ithaca, New York, USA  
+<sup>2</sup> Energy and Resources Group, University of California Berkeley, Berkeley, California, USA  
+<sup>3</sup> School of Public and International Affairs, Princeton University, Princeton, New Jersey, USA  
 <sup>4</sup> School of Mathematical Sciences, Rochester Institute of Technology, Rochester, New York, USA
 
 \* corresponding author:  viveks@cornell.edu
