@@ -21,7 +21,7 @@ CD was partially funded by the College of Agricultural \& Life Sciences, Cornell
 
 ## Journal Reference
 
-* **Preprint:**
+* **Preprint:** <https://osf.io/preprints/osf/j47ts>
  
 ## Code Reference
 
