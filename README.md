@@ -57,7 +57,7 @@ This code is based on Julia 1.9.4. Relevant dependencies are in the `Project.tom
 
 ### Figures
 
-1. Run the simulations above or download the default and peaking results from the OSF repository. The Shapley output is provided with the GitHub repository.  
+1. Run the simulations above or download the default and peaking results from the Zenodo repository. The Shapley output is provided with the GitHub repository or can be re-evaluated.  
 2. Run the following scripts for each of the figures and tables:
     
     | Figure/Table | Script | How To Run |
