@@ -39,7 +39,7 @@ CD was partially funded by the College of Agricultural \& Life Sciences, Cornell
 
 ## Dependencies
 
-This code is based on Julia 1.9.4. Relevant dependencies are in the `Project.toml` and `Manifest.toml` files.
+This code is based on Julia 1.9.4. Relevant dependencies are in the `Project.toml` and `Manifest.toml` files (the `Manifest.jl` specifies the particular versions; this file should be kept as-is for perfect reproducibility but may need to be deleted and rebuilt with `Pkg.instantiate()` for different Julia versions).
 
 ## Reproduction
 
@@ -51,14 +51,14 @@ This code is based on Julia 1.9.4. Relevant dependencies are in the `Project.tom
     Pkg.activate(".") # from the cloned root directory
     Pkg.instantiate()
     ```
-2. To re-simulate the main ensemble, run `julia src/model_ensemble.jl`. This will write output into `results/default/`.
-3. To re-simulate the peaking ensemble, run `julia src/peaking_ensemble.jl`. This will write output into `results/peaking/`.
-4. To re-run the Shapley analysis, after the main ensemble is run, run `julia src/regression_drivers.jl`.This will write output into `output/shapley/`.
+2. To re-simulate the main ensemble, run `julia src/model_ensemble.jl`. This will write output into `results/default/`. This should take about 10 hours on a typical computer. Reducing the size of the ensemble by modifying line 37 in `src/model_ensemble.jl` will speed this up.
+3. To re-simulate the peaking ensemble, run `julia src/peaking_ensemble.jl`. This will write output into `results/peaking/`. This should take about 4 hours on a typical computer. Reducing the size of the ensemble by modifying line 37 in `src/peaking_ensemble.jl` will speed this up.
+4. To re-run the Shapley analysis, after the main ensemble is run, run `julia src/regression_drivers.jl`.This will write output into `output/shapley/`. This can take 36-48 hours and may run into memory issues, but the ensemble size or number of years can be reduced for a quick check.
 
 ### Figures
 
 1. Run the simulations above or download the default and peaking results from the Zenodo repository. The Shapley output is provided with the GitHub repository or can be re-evaluated.  
-2. Run the following scripts for each of the figures and tables:
+2. Run the following scripts for each of the figures and tables (none should take longer than a half-hour on a typical computer):
     
     | Figure/Table | Script | How To Run |
     | --- | --- | --- | 
