@@ -22,11 +22,14 @@ using EvoTrees
 using ShapML
 
 Random.seed!(1)
+scenarios = ["default", "optimistic", "pessimistic"]
+scenario = scenarios[parse(Int64, ARGS[1])]
+println("$scenario")
 
 EvoTreeRegressor = @load EvoTreeRegressor pkg=EvoTrees
 
 # Assume that we call this script from the project folder
-output_dir = "results/default"
+output_dir = joinpath(@__DIR__, "..", "results", scenario)
 slr_out = DataFrame(CSVFiles.load(joinpath(output_dir, "gmslr.csv")))
 emissions = DataFrame(CSVFiles.load(joinpath(output_dir, "emissions.csv")))
 parameters = DataFrame(CSVFiles.load(joinpath(output_dir, "parameters.csv")))
@@ -75,4 +78,4 @@ end
 
 yrs = 2050:5:2200
 shap_df = shapley_reg(yrs, features, targets)
-save("output/shapley/shapley_indices.csv", shap_df)
+save(joinpath(@__DIR__, "..", "output", "shapley", "shapley_indices_$scenario.csv"), shap_df)

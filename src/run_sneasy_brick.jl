@@ -55,7 +55,7 @@ function run_model(calibrated_params, start_year, end_year, output_dir)
         t_peak  = calibrated_params[i,2]
         γ_d     = calibrated_params[i,3]
 
-        t, gtco2 = emissions_curve(historical_data, γ_g=γ_g, t_peak=t_peak, γ_d=γ_d) # years and emissions
+        t, gtco2 = emissions_curve(historical_data, γ_g=γ_g, t_peak=trunc(Int64, t_peak), γ_d=γ_d) # years and emissions
         gtco2 ./= 3.67 # divide by 3.67 to convert GtCO₂/yr to GtC/yr (SNEASY needs input of GtC/yr)
 
         # feed CO₂ emissions into SNEASY-BRICK
@@ -248,17 +248,17 @@ function run_model(calibrated_params, start_year, end_year, output_dir)
     ocean_heat_df                   = DataFrame(ocean_heat, Symbol.([model_years...]))
 
     # export output to .csv files
-    save(joinpath(@__DIR__, "..", "results", "$output_dir", "parameters.csv"), A)
-    save(joinpath(@__DIR__, "..", "results", "$output_dir", "emissions.csv"), co2_emissions_df)
-    save(joinpath(@__DIR__, "..", "results", "$output_dir", "radiative_forcing.csv"), radiative_forcing_df)
-    save(joinpath(@__DIR__, "..", "results", "$output_dir", "temperature.csv"), temperature_df)
-    save(joinpath(@__DIR__, "..", "results", "$output_dir", "gmslr.csv"), global_mean_sea_level_rise_df)
-    save(joinpath(@__DIR__, "..", "results", "$output_dir", "antarctic.csv"), slr_antarctic_icesheet_df)
-    save(joinpath(@__DIR__, "..", "results", "$output_dir", "gsic.csv"), slr_glaciers_small_ice_caps_df)
-    save(joinpath(@__DIR__, "..", "results", "$output_dir", "greenland.csv"), slr_greenland_icesheet_df)
-    save(joinpath(@__DIR__, "..", "results", "$output_dir", "lw_storage.csv"), slr_landwater_storage_df)
-    save(joinpath(@__DIR__, "..", "results", "$output_dir", "thermal_expansion.csv"), slr_thermal_expansion_df)
-    save(joinpath(@__DIR__, "..", "results", "$output_dir", "ocean_heat.csv"), ocean_heat_df)
+    save(joinpath(@__DIR__, "..", "results", output_dir, "parameters.csv"), A)
+    save(joinpath(@__DIR__, "..", "results", output_dir, "emissions.csv"), co2_emissions_df)
+    save(joinpath(@__DIR__, "..", "results", output_dir, "radiative_forcing.csv"), radiative_forcing_df)
+    save(joinpath(@__DIR__, "..", "results", output_dir, "temperature.csv"), temperature_df)
+    save(joinpath(@__DIR__, "..", "results", output_dir, "gmslr.csv"), global_mean_sea_level_rise_df)
+    save(joinpath(@__DIR__, "..", "results", output_dir, "antarctic.csv"), slr_antarctic_icesheet_df)
+    save(joinpath(@__DIR__, "..", "results", output_dir, "gsic.csv"), slr_glaciers_small_ice_caps_df)
+    save(joinpath(@__DIR__, "..", "results", output_dir, "greenland.csv"), slr_greenland_icesheet_df)
+    save(joinpath(@__DIR__, "..", "results", output_dir, "lw_storage.csv"), slr_landwater_storage_df)
+    save(joinpath(@__DIR__, "..", "results", output_dir, "thermal_expansion.csv"), slr_thermal_expansion_df)
+    save(joinpath(@__DIR__, "..", "results", output_dir, "ocean_heat.csv"), ocean_heat_df)
 
     return nothing
 end

@@ -23,48 +23,80 @@ using Statistics # get mean function
 
 # assume this is called from the project root directory
 output_path = "output/shapley"
-shap_ind = DataFrame(CSVFiles.load(joinpath(output_path, "shapley_indices.csv")))
 
-# assign parameters to groups by subsystem
-groups = Dict("Emissions"         => ["gamma_g", "t_peak", "gamma_d"],
-            "Carbon Cycle"        => ["CO2_0", "N2O_0", "Q10",  "CO2_fertilization", "CO2_diffusivity"],
-            "Climate System"      => ["temperature_0", "ocean_heat_0",  "heat_diffusivity", "rf_scale_aerosol", "climate_sensitivity"],
-            "Thermal Expansion"   => ["thermal_alpha", "thermal_s0"],
-            "Greenland Ice Sheet"           => ["greenland_a", "greenland_b", "greenland_alpha", "greenland_beta", "greenland_v0"],
-            "Antarctic Ice Sheet"           => ["antarctic_s0", "antarctic_gamma", "antarctic_alpha", "antarctic_mu", "antarctic_nu",
-                                        "antarctic_precip0", "antarctic_kappa", "antarctic_flow0", "antarctic_runoff_height0",
-                                        "antarctic_c", "antarctic_bed_height0", "antarctic_slope", "antarctic_lambda",
-                                        "antarctic_temp_threshold", "anto_alpha", "anto_beta"],             
-            "Glaciers and SIC"    => ["glaciers_beta0", "glaciers_n", "glaciers_v0", "glaciers_s0"],
-            "Land Water Storage"  => ["lw_random_sample"],            
-            "Other"   => ["sd_temp", "sd_ocean_heat", "sd_glaciers", "sd_greenland", "sd_antarctic", "sd_gmsl",
-            "rho_temperature", "rho_ocean_heat", "rho_glaciers", "rho_greenland", "rho_antarctic", "rho_gmsl"],
-)
-group_col = Array{String}(undef, size(shap_ind)[1]) # preallocate space
-for (key,value) in groups # loop through dictionary and create vector with group labels
-    indices = findall((in)(value), shap_ind.feature_name) # find indices for current group
-    group_col[indices] .= key # fill the indices with the name of current group
-end
-shap_ind.group = group_col # add group column to dataframe   
-
-# average shapley effects by group for each year
-shap_group = groupby(shap_ind[!, Not(:feature_name)], :group)
-shap_group = combine(shap_group, Not(:group) .=> sum)
-# normalize so the grouped shapley sums equal 1
-shap_norm = mapcols(x -> x / sum(x), shap_group[!, Not([:group])])
-insertcols!(shap_norm, 1, :group => shap_group.group)
-group_order = ["Emissions", "Carbon Cycle", "Climate System", "Greenland Ice Sheet", "Antarctic Ice Sheet", "Glaciers and SIC", "Thermal Expansion", "Land Water Storage", "Other"]
-shap_norm = shap_norm[indexin(group_order, shap_group.group), :]
-shap_permute = permutedims(shap_norm, 1)
-
+yrs = 2050:5:2200
 group_colors = ColorSchemes.Set1_9[1:9]
 
-# plot indices over time
-yrs = 2050:5:2200
-plt = areaplot(yrs, Matrix(shap_permute[!, Not(:group)]), label=permutedims(shap_norm.group), xlabel="Year", ylabel="Normalized Grouped Shapley Index", color_palette=group_colors, left_margin=5mm, right_margin=5mm, bottom_margin=10mm, legendfontsize=10, guidefontsize=10, tickfontsize=9, legend=:outerright)
-Plots.xticks!(plt, 2050:25:2200)
-Plots.xlims!((2050, 2200))
-Plots.ylims!((0, 1))
-plot!(size=(800, 400))
+shap_ind_default = DataFrame(CSVFiles.load(joinpath(output_path, "shapley_indices_default.csv")))
 
-savefig(plt, "figures/stacked-shapley-index.png")
+function normalize_shap_groups(shap_ind)
+    # assign parameters to groups by subsystem
+    groups = Dict("Emissions"         => ["γ_g", "t_peak", "γ_d"],
+    "Carbon Cycle"        => ["CO2_0", "N2O_0", "Q10",  "CO2_fertilization", "CO2_diffusivity"],
+    "Climate System"      => ["temperature_0", "ocean_heat_0",  "heat_diffusivity", "rf_scale_aerosol", "climate_sensitivity"],
+    "Thermal Expansion"   => ["thermal_alpha", "thermal_s0"],
+    "Greenland Ice Sheet"           => ["greenland_a", "greenland_b", "greenland_alpha", "greenland_beta", "greenland_v0"],
+    "Antarctic Ice Sheet"           => ["antarctic_s0", "antarctic_gamma", "antarctic_alpha", "antarctic_mu", "antarctic_nu",
+                                "antarctic_precip0", "antarctic_kappa", "antarctic_flow0", "antarctic_runoff_height0",
+                                "antarctic_c", "antarctic_bed_height0", "antarctic_slope", "antarctic_lambda",
+                                "antarctic_temp_threshold", "anto_alpha", "anto_beta"],             
+    "Glaciers and SIC"    => ["glaciers_beta0", "glaciers_n", "glaciers_v0", "glaciers_s0"],
+    "Land Water Storage"  => ["lw_random_sample"],            
+    "Other"   => ["sd_temp", "sd_ocean_heat", "sd_glaciers", "sd_greenland", "sd_antarctic", "sd_gmsl",
+    "rho_temperature", "rho_ocean_heat", "rho_glaciers", "rho_greenland", "rho_antarctic", "rho_gmsl"],
+    )
+
+    group_col = Array{String}(undef, size(shap_ind)[1]) # preallocate space
+    for (key,value) in groups # loop through dictionary and create vector with group labels
+        indices = findall((in)(value), shap_ind.feature_name) # find indices for current group
+        group_col[indices] .= key # fill the indices with the name of current group
+    end
+    shap_ind.group = group_col # add group column to dataframe   
+
+    # average shapley effects by group for each year
+    shap_group = groupby(shap_ind[!, Not(:feature_name)], :group)
+    shap_group = combine(shap_group, Not(:group) .=> sum)
+    # normalize so the grouped shapley sums equal 1
+    shap_norm = mapcols(x -> x / sum(x), shap_group[!, Not([:group])])
+    insertcols!(shap_norm, 1, :group => shap_group.group)
+    group_order = ["Emissions", "Carbon Cycle", "Climate System", "Greenland Ice Sheet", "Antarctic Ice Sheet", "Glaciers and SIC", "Thermal Expansion", "Land Water Storage", "Other"]
+    shap_norm = shap_norm[indexin(group_order, shap_group.group), :]
+    shap_permute = permutedims(shap_norm, 1)
+    return shap_permute
+end
+shap_default = normalize_shap_groups(shap_ind_default)
+# plot indices over time
+p_shap = areaplot(yrs, Matrix(shap_default[!, Not(:group)]), xlabel="Year", ylabel="Relative Group Importance", color_palette=group_colors, left_margin=20mm, right_margin=5mm, bottom_margin=10mm, top_margin=5mm, guidefontsize=12, tickfontsize=10, legend=:outerbottom, label=permutedims(names(shap_default)[2:end]), legendfontsize=11, fg_color_legend=false)
+annotate!(p_shap, 2030, 1.05, text("a", :left, 16))
+Plots.xticks!(p_shap, 2050:25:2200)
+Plots.xlims!(p_shap, (2050, 2200))
+Plots.ylims!(p_shap, (0, 1))
+
+# plot group importance differences betweend other scenarios and default
+shap_ind_optimistic = DataFrame(CSVFiles.load(joinpath(output_path, "shapley_indices_optimistic.csv")))
+shap_ind_pessimistic = DataFrame(CSVFiles.load(joinpath(output_path, "shapley_indices_pessimistic.csv")))
+shap_optimistic = normalize_shap_groups(shap_ind_optimistic)
+shap_pessimistic = normalize_shap_groups(shap_ind_pessimistic)
+shap_opt_diff = shap_optimistic[:, 2:end] .- shap_default[:, 2:end]
+shap_pess_diff = shap_pessimistic[:, 2:end] .- shap_default[:, 2:end]
+
+function plot_differences(shap_opt_diff, shap_pess_diff, groupname, label)
+    diff_mat = Matrix(hcat(shap_opt_diff[!, groupname], shap_pess_diff[!, groupname]))
+    plt = Plots.plot(yrs, diff_mat, linewidth=2, xlabel="Year", ylabel="Difference From\nBaseline", title=groupname, legend=:false, colors=[:orange, :teal], left_margin=20mm, right_margin=5mm, bottom_margin=10mm, top_margin=5mm, guidefontsize=12, tickfontsize=10, legendfontsize=10, titlefontsize=14)
+    annotate!(plt, 1950, maximum(diff_mat) + (maximum(diff_mat) - minimum(diff_mat)) / 8 , text(label, :left, 14))
+    xticks!(plt, 2050:50:2200)
+    hline!(plt, [0.0], color=:black, linestyle=:dash)
+    return plt
+end
+p_emis = plot_differences(shap_opt_diff, shap_pess_diff, "Emissions", "b")
+p_clim = plot_differences(shap_opt_diff, shap_pess_diff, "Climate System", "c")
+p_ais = plot_differences(shap_opt_diff, shap_pess_diff, "Antarctic Ice Sheet", "d")
+p_gis = plot_differences(shap_opt_diff, shap_pess_diff, "Greenland Ice Sheet", "e")
+p_leg = plot((-2:-1)', (-2:-1)', lims=(0, 0.05), legendfontsize=12, legend=:bottom, fg_color_legend=false, labels=["Optimistic" "Pessimistic"], fc=[:orange :teal], frame=:none, size=(5, 100))
+l = @layout [
+            a{0.5w} [grid(2, 2)
+                     b{0.01h}    ]
+]
+plt = Plots.plot(p_shap, p_emis, p_clim, p_ais, p_gis, p_leg, layout=l, size=(1200, 600))
+
+savefig(plt, "figures/stacked-shapley-index-scenarios.png")

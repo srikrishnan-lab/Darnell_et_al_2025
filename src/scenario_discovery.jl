@@ -21,31 +21,37 @@ using MLJ
 using EvoTrees
 using CairoMakie
 
+
 # define random forest classifier object
 classifier = @load EvoTreeClassifier pkg=EvoTrees
 
 # load ensemble output
-output_dir = "results/peaking"
-slr_out = DataFrame(CSVFiles.load(joinpath(output_dir, "gmslr.csv")))
-ais_out = DataFrame(CSVFiles.load(joinpath(output_dir, "antarctic.csv")))
-gis_out = DataFrame(CSVFiles.load(joinpath(output_dir, "greenland.csv")))
-temp_out = DataFrame(CSVFiles.load(joinpath(output_dir, "temperature.csv")))
-emissions = DataFrame(CSVFiles.load(joinpath(output_dir, "emissions.csv")))
-parameters = DataFrame(CSVFiles.load(joinpath(output_dir, "parameters.csv")))
+output_dir = joinpath(@__DIR__, "..", "results")
+slr_default = DataFrame(CSVFiles.load(joinpath(output_dir, "default", "gmslr.csv")))
+slr_optimistic = DataFrame(CSVFiles.load(joinpath(output_dir, "optimistic", "gmslr.csv")))
+slr_pessimistic = DataFrame(CSVFiles.load(joinpath(output_dir, "pessimistic", "gmslr.csv")))
+temp_out = DataFrame(CSVFiles.load(joinpath(output_dir, "default", "temperature.csv")))
+parameters_default = DataFrame(CSVFiles.load(joinpath(output_dir, "default", "parameters.csv")))
+parameters_optimistic = DataFrame(CSVFiles.load(joinpath(output_dir, "optimistic", "parameters.csv")))
+parameters_pessimistic = DataFrame(CSVFiles.load(joinpath(output_dir, "pessimistic", "parameters.csv")))
+
 # normalize relative to 2000
-idx_2000 = findfirst(names(slr_out) .== "2000")
-for row in axes(slr_out,1 )
-    foreach(col -> slr_out[row, col] -= slr_out[row, idx_2000], axes(slr_out, 2))
+idx_2000 = findfirst(names(slr_default) .== "2000")
+for row in axes(slr_default,1 )
+    foreach(col -> slr_default[row, col] -= slr_default[row, idx_2000], axes(slr_default, 2))
+    foreach(col -> slr_optimistic[row, col] -= slr_optimistic[row, idx_2000], axes(slr_default, 2))
+    foreach(col -> slr_pessimistic[row, col] -= slr_pessimistic[row, idx_2000], axes(slr_default, 2))
 end
 
 ## Start with SLR outcomes in 2100
-features = parameters
-idx_1850 = findfirst(names(slr_out) .== "1850")
-idx_1900 = findfirst(names(slr_out) .== "1900")
-features.antarctic_temp_threshold = [15.42 .+ 0.8365 * parameters[i, :antarctic_temp_threshold] - mean(temp_out[i, idx_1850:idx_1900]) for i in axes(temp_out, 1)]
+idx_1850 = findfirst(names(slr_default) .== "1850")
+idx_1900 = findfirst(names(slr_default) .== "1900")
+parameters_default.antarctic_temp_threshold = [15.42 .+ 0.8365 * parameters_default[i, :antarctic_temp_threshold] - mean(temp_out[i, idx_1850:idx_1900]) for i in axes(temp_out, 1)]
+parameters_optimistic.antarctic_temp_threshold = [15.42 .+ 0.8365 * parameters_optimistic[i, :antarctic_temp_threshold] - mean(temp_out[i, idx_1850:idx_1900]) for i in axes(temp_out, 1)]
+parameters_pessimistic.antarctic_temp_threshold = [15.42 .+ 0.8365 * parameters_pessimistic[i, :antarctic_temp_threshold] - mean(temp_out[i, idx_1850:idx_1900]) for i in axes(temp_out, 1)]
 
 
-function plot_feature_importance(year, threshold, features, subplot_label; f=Figure())
+function plot_feature_importance(slr_out, year, threshold, features, subplot_label; f=Figure())
     slr_labels = ifelse.(threshold .< slr_out[:, Symbol(year)], "high", "normal")
 
     slr_key_tree = EvoTreeClassifier(nrounds=200, max_depth=3)
@@ -64,7 +70,9 @@ function plot_feature_importance(year, threshold, features, subplot_label; f=Fig
     return f
 end
 
-function plot_sos_contours(year, threshold, features, key_params, stepsize, limits, labels, subplot_label, colors; f=Figure())
+
+
+function plot_sos_contours(slr_out, year, threshold, features, key_params, stepsize, limits, labels, subplot_label, colors; f=Figure())
     #refit tree using just t_peak, antarctic temp threshold, and climate sensitivity
     slr_labels = ifelse.(threshold .< slr_out[:, Symbol(year)], "high", "normal")
 
@@ -98,11 +106,11 @@ function plot_sos_contours(year, threshold, features, key_params, stepsize, limi
     axright = Axis(f[2, 2], limits=((0, nothing), limits[2]))
     linkyaxes!(axmain, axright)
     linkxaxes!(axmain, axtop)
+    axmain.xticks = 2.0:1.0:6.0
 
     fmap = Makie.contour!(axmain, key_feature_df[:, 2], key_feature_df[:, 3], predict_class_2050, color=colors[0.2], levels=0.0:0.5:1.0, linewidth=4, xlabel=labels[1], ylabel=labels[2])
     fmap3 =Makie.contour!(axmain, key_feature_df[:, 2], key_feature_df[:, 3], predict_class_2070, color=colors[0.5], levels=0.0:0.5:1.0, linewidth=4)
-    fmap5 =Makie.contour!(axmain, key_feature_df[:, 2], key_feature_df[:, 3], predict_class_2090, color=colors[0.5], levels=0.0:0.5:1.0, linewidth=4)
-
+    fmap5 =Makie.contour!(axmain, key_feature_df[:, 2], key_feature_df[:, 3], predict_class_2090, color=colors[0.8], levels=0.0:0.5:1.0, linewidth=4)
 
     # plot marginal densities for the geophysical uncertainties
     Makie.density!(axtop, features[!, key_params[2]])
@@ -124,32 +132,37 @@ function plot_sos_contours(year, threshold, features, key_params, stepsize, limi
     return f
 end
 
-f_imp = Figure(resolution=(700, 400), fontsize=12, figure_padding=(50, 10, 0, 30))
+f_imp = Figure(resolution=(1000, 400), fontsize=12, figure_padding=(50, 10, 0, 30))
 
-ga = f_imp[1, 1] = GridLayout()
-gb = f_imp[1, 2] = GridLayout()
+ga = f_imp[1, 1] 
+gb = f_imp[1, 2] 
+gc = f_imp[1, 3]
 
-fig_imp_2100 = plot_feature_importance(2100, 1.0, features, "a"; f=ga)
-fig_imp_2150 = plot_feature_importance(2150, 1.5, features, "b"; f=gb)
+fig_imp_default = plot_feature_importance(slr_default, 2100, 1.0, parameters_default, "a"; f=ga)
+fig_imp_optimistic = plot_feature_importance(slr_optimistic, 2100, 1.0, parameters_optimistic, "b"; f=gb)
+fig_imp_pessimistic = plot_feature_importance(slr_pessimistic, 2100, 1.0, parameters_pessimistic, "c"; f=gc)
 
-CairoMakie.save("figures/feature_importance.png", f_imp)
+CairoMakie.save("figures/feature_importance_scenarios.png", f_imp)
 
 contour_colors = cgrad(:Reds_5)
 
-f_sd = Figure(resolution=(700, 400), fontsize=16)
+f_sd = Figure(size=(1000, 400), fontsize=16)
 
 ga = f_sd[1, 1] = GridLayout()
 gb = f_sd[1, 2] = GridLayout()
+gc = f_sd[1, 3] = GridLayout()
 
-fig_2100_1m = plot_sos_contours(2100, 1.0, features,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.001, 0.001], [(1.5, 6), (1.2, 3.8)], ["Equilibrium Climate Sensitivity (°C)", "AIS Temperature Threshold (°C)"], "a", contour_colors; f=ga)
+fig_2100_default = plot_sos_contours(slr_default, 2100, 1.0, parameters_default,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.001, 0.001], [(1.5, 6), (1.2, 3.8)], ["Equilibrium Climate Sensitivity (°C)", "AIS Temperature Threshold (°C)"], "a", contour_colors; f=ga)
 
-fig_2150_2m = plot_sos_contours(2150, 2.0, features,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.001, 0.001], [(1.5, 6), (1.2, 3.8)], ["Equilibrium Climate Sensitivity (°C)", "AIS Temperature Threshold (°C)"], "b", contour_colors; f=gb)
+fig_2100_optimistic = plot_sos_contours(slr_optimistic, 2100, 1.0, parameters_optimistic,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.001, 0.001], [(1.5, 6), (1.2, 3.8)], ["Equilibrium Climate Sensitivity (°C)", "AIS Temperature Threshold (°C)"], "b", contour_colors; f=gb)
+
+fig_2100_pessimistic = plot_sos_contours(slr_pessimistic, 2100, 1.0, parameters_pessimistic,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.001, 0.001], [(1.5, 6), (1.2, 3.8)], ["Equilibrium Climate Sensitivity (°C)", "AIS Temperature Threshold (°C)"], "c", contour_colors; f=gc)
 
 # create legend
 elem_2050 = LineElement(color = contour_colors[0.0], linestyle = nothing, linewidth=4)
 elem_2070 = LineElement(color = contour_colors[0.4], linestyle = nothing, linewidth=4)
 elem_2090 = LineElement(color = contour_colors[0.8], linestyle = nothing, linewidth=4)
 
-leg = Legend(f_sd[2,1:2], [elem_2050, elem_2070, elem_2090, ], ["2050", "2070", "2090"], "Year Emissions Peak", orientation=:horizontal, tellwidth=false, tellheight=true, framevisible=false)
+leg = Legend(f_sd[2,1:3], [elem_2050, elem_2070, elem_2090, ], ["2050", "2070", "2090"], "Year Emissions Peak", orientation=:horizontal, tellwidth=false, tellheight=true, framevisible=false)
 
-CairoMakie.save("figures/factor_map_all.png", f_sd)
+CairoMakie.save(joinpath(@__DIR__, "..", "figures", "factor_map_all_scenarios.png"), f_sd)
