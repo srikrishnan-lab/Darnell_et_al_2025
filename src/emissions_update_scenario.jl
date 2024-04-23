@@ -25,6 +25,7 @@ using AdaptiveMCMC
 using MCMCChains
 using Makie
 using CairoMakie
+using LaTeXStrings
 
 include(joinpath(@__DIR__, "functions.jl")) # include functions from other scripts
 
@@ -143,10 +144,10 @@ df_pessimistic[!, :t_peak] = trunc.(Int64, df_pessimistic[!, :t_peak])
 save(joinpath(@__DIR__, "..", "data", "emissions", "pessimistic", "parameters.csv"), df_pessimistic)
 
 # plot priors and scenario distributions
-fig = Figure(size=(800, 400), fontsize=20, figure_padding=10)
-ax1 = Axis(fig[1, 1], xlabel="γg", ylabel="Probability Density")
-ax2 = Axis(fig[1, 2], xlabel="tpeak", ylabel="Probability Density")
-ax3 = Axis(fig[1, 3], xlabel="γd", ylabel="Probability Density")
+fig = Figure(size=(1000, 400), fontsize=20, figure_padding=10)
+ax1 = Axis(fig[1, 1], xlabel=L"$\gamma_g$", ylabel="Probability Density")
+ax2 = Axis(fig[1, 2], xlabel=L"$t_\text{peak}$", ylabel="Probability Density")
+ax3 = Axis(fig[1, 3], xlabel=L"$\gamma_d$", ylabel="Probability Density")
 
 # first plot prior then scenario distributions
 Makie.lines!(ax1, Makie.KernelDensity.kde(rand(γ_g_pri, n_samples),bandwidth=0.002), color=:gray, label="Prior", linewidth=3)
