@@ -40,7 +40,7 @@ function normalize_data!(dat, norm_yrs=nothing)
 end
 
 normalize_data!(temperature, 1850:1900)
-normalize_data!(gmslr, [2000])
+normalize_data!(gmslr, 1995:2014)
 
 # define function to compute quantiles relative to some normalization period
 function compute_norm_quantiles(dat, norm_yrs=nothing)

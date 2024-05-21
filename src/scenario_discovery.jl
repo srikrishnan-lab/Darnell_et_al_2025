@@ -36,12 +36,20 @@ parameters_optimistic = DataFrame(CSVFiles.load(joinpath(output_dir, "optimistic
 parameters_pessimistic = DataFrame(CSVFiles.load(joinpath(output_dir, "pessimistic", "parameters.csv")))
 
 # normalize relative to 2000
-idx_2000 = findfirst(names(slr_default) .== "2000")
-for row in axes(slr_default,1 )
-    foreach(col -> slr_default[row, col] -= slr_default[row, idx_2000], axes(slr_default, 2))
-    foreach(col -> slr_optimistic[row, col] -= slr_optimistic[row, idx_2000], axes(slr_default, 2))
-    foreach(col -> slr_pessimistic[row, col] -= slr_pessimistic[row, idx_2000], axes(slr_default, 2))
+# function to find normalize relative to a year or mean over some normalization period)
+function normalize_data!(dat, norm_yrs=nothing)
+    # normalize to relevant period  defined by norm_yrs
+    idx_norm = findall((!isnothing).(indexin(names(dat), string.(norm_yrs))))
+    norm_mean = map(mean, eachrow(dat[:, idx_norm]))
+    for row in axes(dat, 1)
+        foreach(col -> dat[row, col] -= norm_mean[row], axes(dat, 2))
+    end
+    return dat
 end
+
+normalize_data!(slr_default, 1995:2014)
+normalize_data!(slr_optimistic, 1995:2014)
+normalize_data!(slr_pessimistic, 1995:2014)
 
 ## Start with SLR outcomes in 2100
 idx_1850 = findfirst(names(slr_default) .== "1850")
@@ -51,7 +59,7 @@ parameters_optimistic.antarctic_temp_threshold = [15.42 .+ 0.8365 * parameters_o
 parameters_pessimistic.antarctic_temp_threshold = [15.42 .+ 0.8365 * parameters_pessimistic[i, :antarctic_temp_threshold] - mean(temp_out[i, idx_1850:idx_1900]) for i in axes(temp_out, 1)]
 
 
-function plot_feature_importance(slr_out, year, threshold, features, subplot_label; f=Figure())
+function plot_feature_importance(slr_out, year, threshold, features, subplot_label, title; f=Figure())
     slr_labels = ifelse.(threshold .< slr_out[:, Symbol(year)], "high", "normal")
 
     slr_key_tree = EvoTreeClassifier(nrounds=200, max_depth=3)
@@ -60,7 +68,7 @@ function plot_feature_importance(slr_out, year, threshold, features, subplot_lab
 
     param_import = stack(DataFrame(feature_importances(slr_key_mach)))
     ax = Axis(f[1,1], xticks = (1:10, param_import.variable[1:10]),                
-        xticklabelrotation = pi/4, ylabel = "Feature Importance")
+        xticklabelrotation = pi/4, ylabel = "Feature Importance", title=title)
     Makie.barplot!(ax, param_import.value[1:10])
 
     Label(f[1, 1, TopLeft()], subplot_label, font=:bold,fontsize=16,
@@ -72,7 +80,7 @@ end
 
 
 
-function plot_sos_contours(slr_out, year, threshold, features, key_params, stepsize, limits, labels, subplot_label, colors; f=Figure())
+function plot_sos_contours(slr_out, year, threshold, features, key_params, stepsize, limits, labels, subplot_label, colors, title; f=Figure())
     #refit tree using just t_peak, antarctic temp threshold, and climate sensitivity
     slr_labels = ifelse.(threshold .< slr_out[:, Symbol(year)], "high", "normal")
 
@@ -120,6 +128,8 @@ function plot_sos_contours(slr_out, year, threshold, features, key_params, steps
     hidespines!(axtop) 
     hidespines!(axright)
 
+    Label(f[1, 1, Top()], title, font=:bold,fontsize=16,
+    halign = :center)    
     Label(f[1, 1, TopLeft()], subplot_label, font=:bold,fontsize=16,
     padding = (0, 5, 5, 5),
     halign = :left)    
@@ -138,9 +148,9 @@ ga = f_imp[1, 1]
 gb = f_imp[1, 2] 
 gc = f_imp[1, 3]
 
-fig_imp_default = plot_feature_importance(slr_default, 2100, 1.0, parameters_default, "a"; f=ga)
-fig_imp_optimistic = plot_feature_importance(slr_optimistic, 2100, 1.0, parameters_optimistic, "b"; f=gb)
-fig_imp_pessimistic = plot_feature_importance(slr_pessimistic, 2100, 1.0, parameters_pessimistic, "c"; f=gc)
+fig_imp_default = plot_feature_importance(slr_default, 2100, 1.0, parameters_default, "a", "Baseline"; f=ga)
+fig_imp_optimistic = plot_feature_importance(slr_optimistic, 2100, 1.0, parameters_optimistic, "b", "Optimistic"; f=gb)
+fig_imp_pessimistic = plot_feature_importance(slr_pessimistic, 2100, 1.0, parameters_pessimistic, "c", "Pessimistic"; f=gc)
 
 CairoMakie.save("figures/feature_importance_scenarios.png", f_imp)
 
@@ -152,11 +162,11 @@ ga = f_sd[1, 1] = GridLayout()
 gb = f_sd[1, 2] = GridLayout()
 gc = f_sd[1, 3] = GridLayout()
 
-fig_2100_default = plot_sos_contours(slr_default, 2100, 1.0, parameters_default,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.001, 0.001], [(1.5, 6), (1.2, 3.8)], ["Equilibrium Climate Sensitivity (°C)", "AIS Temperature Threshold (°C)"], "a", contour_colors; f=ga)
+fig_2100_default = plot_sos_contours(slr_default, 2100, 1.0, parameters_default,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.001, 0.001], [(1.5, 6), (1.2, 3.8)], ["Equilibrium Climate Sensitivity (°C)", "AIS Temperature Threshold (°C)"], "a", contour_colors, "Baseline"; f=ga)
 
-fig_2100_optimistic = plot_sos_contours(slr_optimistic, 2100, 1.0, parameters_optimistic,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.001, 0.001], [(1.5, 6), (1.2, 3.8)], ["Equilibrium Climate Sensitivity (°C)", "AIS Temperature Threshold (°C)"], "b", contour_colors; f=gb)
+fig_2100_optimistic = plot_sos_contours(slr_optimistic, 2100, 1.0, parameters_optimistic,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.001, 0.001], [(1.5, 6), (1.2, 3.8)], ["Equilibrium Climate Sensitivity (°C)", "AIS Temperature Threshold (°C)"], "b", contour_colors, "Optimistic"; f=gb)
 
-fig_2100_pessimistic = plot_sos_contours(slr_pessimistic, 2100, 1.0, parameters_pessimistic,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.001, 0.001], [(1.5, 6), (1.2, 3.8)], ["Equilibrium Climate Sensitivity (°C)", "AIS Temperature Threshold (°C)"], "c", contour_colors; f=gc)
+fig_2100_pessimistic = plot_sos_contours(slr_pessimistic, 2100, 1.0, parameters_pessimistic,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.001, 0.001], [(1.5, 6), (1.2, 3.8)], ["Equilibrium Climate Sensitivity (°C)", "AIS Temperature Threshold (°C)"], "c", contour_colors, "Pessimistic"; f=gc)
 
 # create legend
 elem_2050 = LineElement(color = contour_colors[0.0], linestyle = nothing, linewidth=4)

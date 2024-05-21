@@ -22,19 +22,28 @@ using Measures # adjust margins with explicit measures
 using StatsBase # get mean
 
 # load the results
-# Assume that we call this script from the project folder
-output_dir = "results/default"
-emissions = DataFrame(CSVFiles.load(joinpath(output_dir, "emissions.csv")))
-temperature = DataFrame(CSVFiles.load(joinpath(output_dir, "temperature.csv")))
-gmslr = DataFrame(CSVFiles.load(joinpath(output_dir, "gmslr.csv")))
-antarctic = DataFrame(CSVFiles.load(joinpath(output_dir, "antarctic.csv")))
-gsic = DataFrame(CSVFiles.load(joinpath(output_dir, "gsic.csv")))
-greenland = DataFrame(CSVFiles.load(joinpath(output_dir, "greenland.csv")))
-lw_storage = DataFrame(CSVFiles.load(joinpath(output_dir, "lw_storage.csv")))
-thermal_expansion = DataFrame(CSVFiles.load(joinpath(output_dir, "thermal_expansion.csv")))
+# read in scenarios
+params_default = DataFrame(CSVFiles.load(joinpath(@__DIR__, "..", "results", "default", "parameters.csv")))
+params_optimistic = DataFrame(CSVFiles.load(joinpath(@__DIR__, "..", "results", "optimistic", "parameters.csv")))
+params_pessimistic = DataFrame(CSVFiles.load(joinpath(@__DIR__, "..", "results", "pessimistic", "parameters.csv")))
+emis_default = DataFrame(CSVFiles.load(joinpath(@__DIR__, "..", "results", "default", "emissions.csv")))
+emis_optimistic = DataFrame(CSVFiles.load(joinpath(@__DIR__, "..", "results", "optimistic", "emissions.csv")))
+emis_pessimistic = DataFrame(CSVFiles.load(joinpath(@__DIR__, "..", "results", "pessimistic", "emissions.csv")))
+temp_default = DataFrame(CSVFiles.load(joinpath(@__DIR__, "..", "results", "default", "temperature.csv")))
+temp_optimistic = DataFrame(CSVFiles.load(joinpath(@__DIR__, "..", "results", "optimistic", "temperature.csv")))
+temp_pessimistic = DataFrame(CSVFiles.load(joinpath(@__DIR__, "..", "results", "pessimistic", "temperature.csv")))
+gmslr_default = DataFrame(CSVFiles.load(joinpath(@__DIR__, "..", "results", "default", "gmslr.csv")))
+gmslr_optimistic = DataFrame(CSVFiles.load(joinpath(@__DIR__, "..", "results", "optimistic", "gmslr.csv")))
+gmslr_pessimistic = DataFrame(CSVFiles.load(joinpath(@__DIR__, "..", "results", "pessimistic", "gmslr.csv")))
+ais_default = DataFrame(CSVFiles.load(joinpath(@__DIR__, "..", "results", "default", "antarctic.csv")))
+ais_optimistic = DataFrame(CSVFiles.load(joinpath(@__DIR__, "..", "results", "optimistic", "antarctic.csv")))
+ais_pessimistic = DataFrame(CSVFiles.load(joinpath(@__DIR__, "..", "results", "pessimistic", "antarctic.csv")))
+gis_default = DataFrame(CSVFiles.load(joinpath(@__DIR__, "..", "results", "default", "greenland.csv")))
+gis_optimistic = DataFrame(CSVFiles.load(joinpath(@__DIR__, "..", "results", "optimistic", "greenland.csv")))
+gis_pessimistic = DataFrame(CSVFiles.load(joinpath(@__DIR__, "..", "results", "pessimistic", "greenland.csv")))
 
 ## load CO2 emissions for  CMIP6 scenarios
-cmip_df =  XLSX.readtable("data/cmip6_co2.xlsx", "data") |> DataFrame
+cmip_df =  XLSX.readtable(joinpath(@__DIR__, "..", "data", "cmip6_co2.xlsx"), "data") |> DataFrame
 # select only rows and columns with scenario names and data   
 select!(cmip_df, Not([:Model, :Region, :Variable, :Unit, :Notes]))
 cmip_df = cmip_df[1:7, :]
@@ -45,132 +54,199 @@ cmip_df[!, :Scenario] = [split(cmip_df[i, :Scenario], " ")[1] for i in 1:nrow(cm
 sort!(cmip_df, :Scenario)
 # convert emissions  from MtCO2/yr to GtCO2/yr
 cmip_df[!, Not(:Scenario)] = cmip_df[!, Not(:Scenario)] ./ 1000
+cmip_df = cmip_df[Not(cmip_df[:, :Scenario] .== "SSP4-3.4"), :] # drop SSP4-3.4 since it doesn't show up in AR6
+cmip_df = cmip_df[Not(cmip_df[:, :Scenario] .== "SSP4-6.0"), :] # drop SSP4-6.0 since it doesn't show up in AR6
 
-# function to find the 90% prediction interval (optional: after normalizing relative to a year or mean over some normalization period)
-function compute_norm_quantiles(dat, norm_yrs=nothing)
+ar6_lines_927 = Dict("SSP1-1.9" => colorant"rgb( 35, 197, 226)",
+                    "SSP1-2.6" => colorant"rgb( 21, 73, 135)",
+                    "SSP2-4.5" => colorant"rgb(255, 150,  60)",
+                    "SSP3-7.0" => colorant"rgb(255,  66,  48)",
+                    "SSP5-8.5" => colorant"rgb(178,  44,  26)",
+                    "SSP5-8.5 LC" => colorant"rgb(200, 35, 200)"
+)
+ar6_temp = DataFrame(
+    year = repeat([2050, 2090], inner=5),
+    scenario = repeat(["SSP1-1.9", "SSP1-2.6", "SSP2-4.5", "SSP3-7.0", "SSP5-8.5"], outer=2),
+    min = [1.2, 1.3, 1.6, 1.7, 1.9, 1.0, 1.3, 2.1, 2.8, 3.3],
+    median = [1.6, 1.7, 2.0, 2.1, 2.4, 1.4, 1.8, 2.7, 3.6, 4.4],
+    max = [2.0, 2.2, 2.5, 2.6, 3.0, 1.8, 2.4, 3.5, 4.6, 5.7]
+)
+# add colors to AR6 dataframe
+cmip_df.color = [ar6_lines_927[s] for s in cmip_df.Scenario]
+ar6_temp.color = [ar6_lines_927[s] for s in ar6_temp.scenario]
+
+
+
+# function to find normalize relative to a year or mean over some normalization period)
+function normalize_data!(dat, norm_yrs=nothing)
     # normalize to relevant period  defined by norm_yrs
-    if !isnothing(norm_yrs)
-        idx_norm = findall((!isnothing).(indexin(names(dat), string.(norm_yrs))))
-        for row in axes(dat, 1)
-            foreach(col -> dat[row, col] -= mean(dat[row, idx_norm]), axes(dat, 2))
-        end
+    idx_norm = findall((!isnothing).(indexin(names(dat), string.(norm_yrs))))
+    norm_mean = map(mean, eachrow(dat[:, idx_norm]))
+    for row in axes(dat, 1)
+        foreach(col -> dat[row, col] -= norm_mean[row], axes(dat, 2))
     end
-    # compute median and 90% prediction interval
-    quantiles = mapcols(col -> quantile(col, [0.05, 0.5, 0.95]), dat)
-    return quantiles
+    return dat
 end
+
+function compute_ais_fd(temps, params)
+    ais_fd_trigger = 15.42 .+ 0.8365 * params[:, :antarctic_temp_threshold]
+    temp_mat = Matrix(temps)
+    ais_fd = zeros(size(temps))
+    for i in 1:size(temp_mat, 1)
+        ais_fd[i, :] = (temp_mat[i, :] .> ais_fd_trigger[i]) * params[i, :antarctic_lambda]
+    end
+    ais_fd_cum = mapslices(cumsum, ais_fd; dims=2)
+    return ais_fd_cum
+end
+
+# normalize data
+normalize_data!(temp_default, 1850:1900)
+normalize_data!(temp_optimistic, 1850:1900)
+normalize_data!(temp_pessimistic, 1850:1900)
+normalize_data!(gmslr_default, 1995:2014)
+normalize_data!(gmslr_optimistic, 1995:2014)
+normalize_data!(gmslr_pessimistic, 1995:2014)
+normalize_data!(gis_default, 1995:2014)
+normalize_data!(gis_optimistic, 1995:2014)
+normalize_data!(gis_pessimistic, 1995:2014)
+normalize_data!(gis_default, 1995:2014)
+normalize_data!(gis_optimistic, 1995:2014)
+normalize_data!(gis_pessimistic, 1995:2014)
 
 # compute quantiles
-emissions_q = compute_norm_quantiles(emissions)
-temperature_q = compute_norm_quantiles(temperature, 1850:1900)
-gmsl_q = compute_norm_quantiles(gmslr, [2000])
-antarctic_q = compute_norm_quantiles(antarctic, [2000])
-greenland_q = compute_norm_quantiles(greenland, [2000])
-other = gsic .+ lw_storage .+ thermal_expansion
-other_q = compute_norm_quantiles(other, [2000])
+emis_q_default =  mapcols(col -> quantile(col, [0.05, 0.5, 0.95]), emis_default)
+emis_q_optimistic =  mapcols(col -> quantile(col, [0.05, 0.5, 0.95]), emis_optimistic)
+emis_q_pessimistic =  mapcols(col -> quantile(col, [0.05, 0.5, 0.95]), emis_pessimistic)
+temp_q_default =  mapcols(col -> quantile(col, [0.05, 0.5, 0.95]), temp_default)
+temp_q_optimistic =  mapcols(col -> quantile(col, [0.05, 0.5, 0.95]), temp_optimistic)
+temp_q_pessimistic =  mapcols(col -> quantile(col, [0.05, 0.5, 0.95]), temp_pessimistic)
+
+gmslr_default_stack = DataFrame(stack(gmslr_default[:, [:"2050", :"2100", :"2150", :"2200"]]))
+gmslr_default_stack.scenario .= "Baseline"
+gmslr_optimistic_stack = DataFrame(stack(gmslr_optimistic[:, [:"2050", :"2100", :"2150", :"2200"]]))
+gmslr_optimistic_stack.scenario .= "Optimistic"
+gmslr_pessimistic_stack = DataFrame(stack(gmslr_pessimistic[:, [:"2050", :"2100", :"2150", :"2200"]]))
+gmslr_pessimistic_stack.scenario .= "Pessimistic"
+gmslr_all = vcat(gmslr_default_stack, gmslr_optimistic_stack, gmslr_pessimistic_stack)
+
+gis_default_stack = DataFrame(stack(gis_default[:, [:"2050", :"2100", :"2150", :"2200"]]))
+gis_default_stack.scenario .= "Baseline"
+gis_optimistic_stack = DataFrame(stack(gis_optimistic[:, [:"2050", :"2100", :"2150", :"2200"]]))
+gis_optimistic_stack.scenario .= "Optimistic"
+gis_pessimistic_stack = DataFrame(stack(gis_pessimistic[:, [:"2050", :"2100", :"2150", :"2200"]]))
+gis_pessimistic_stack.scenario .= "Pessimistic"
+gis_all = vcat(gis_default_stack, gis_optimistic_stack, gis_pessimistic_stack)
+
+ais_default_stack = DataFrame(stack(ais_default[:, [:"2050", :"2100", :"2150", :"2200"]]))
+ais_default_stack.scenario .= "Baseline"
+ais_optimistic_stack = DataFrame(stack(ais_optimistic[:, [:"2050", :"2100", :"2150", :"2200"]]))
+ais_optimistic_stack.scenario .= "Optimistic"
+ais_pessimistic_stack = DataFrame(stack(ais_pessimistic[:, [:"2050", :"2100", :"2150", :"2200"]]))
+ais_pessimistic_stack.scenario .= "Pessimistic"
+ais_all = vcat(ais_default_stack, ais_optimistic_stack, ais_pessimistic_stack)
+
+# compute AIS fast dynamics contributions quantiles
+fd_default = DataFrame(compute_ais_fd(temp_default, params_default), string.(1850:2300))
+fd_optimistic = DataFrame(compute_ais_fd(temp_optimistic, params_optimistic), string.(1850:2300))
+fd_pessimistic = DataFrame(compute_ais_fd(temp_pessimistic, params_pessimistic), string.(1850:2300))
+
+fd_default_stack = DataFrame(stack(fd_default[:, [:"2050", :"2100", :"2150", :"2200"]]))
+fd_default_stack.scenario .= "Baseline"
+fd_optimistic_stack = DataFrame(stack(fd_optimistic[:, [:"2050", :"2100", :"2150", :"2200"]]))
+fd_optimistic_stack.scenario .= "Optimistic"
+fd_pessimistic_stack = DataFrame(stack(fd_pessimistic[:, [:"2050", :"2100", :"2150", :"2200"]]))
+fd_pessimistic_stack.scenario .= "Pessimistic"
+fd_all = vcat(fd_default_stack, fd_optimistic_stack, fd_pessimistic_stack)
+
+# compute years of fast dynamics triggers
+function find_fd_year(fd, years)
+    fd_yr= Vector{Union{Int64, Nothing}}(undef, nrow(fd)) 
+    fd_mat = Matrix(fd)
+    for i in 1:nrow(fd_default)
+        fd_yr_idx = findfirst((.>)(0), fd_mat[i, :])
+        if !isnothing(fd_yr_idx)
+            fd_yr[i] = years[fd_yr_idx]
+        end
+    end
+    return fd_yr
+end
+
+fd_yr_default = identity.(filter(x -> !isnothing(x), find_fd_year(fd_default, 1850:2300)))
+fd_yr_optimistic = identity.(filter(x -> !isnothing(x), find_fd_year(fd_optimistic, 1850:2300)))
+fd_yr_pessimistic = identity.(filter(x -> !isnothing(x), find_fd_year(fd_pessimistic, 1850:2300)))
 
 ## make plot
-fig = Figure(resolution=(1000, 690), fontsize=16, figure_padding=20)
+fig = Figure(size=(1000, 800), fontsize=14, figure_padding=20)
 
-gemissions = fig[1:3, 1] = GridLayout()
+gemissions = fig[1:2, 1] = GridLayout()
+gslr = fig[1:2, 2:3] = GridLayout()
 
 # plot 1: emissions distribution
-axemissions = Axis(gemissions[1, 1], xlabel="Year", ylabel="CO₂ Emissions (Gt CO₂/yr)")
-leg_med = Makie.lines!(axemissions, parse.(Int64, names(emissions_q)), Vector(emissions_q[2, :]), color=:black)
-leg_ci = Makie.band!(axemissions, parse.(Int64, names(emissions_q)), Vector(emissions_q[1, :]), Vector(emissions_q[3, :]), color=(:gray, 0.2))
-leg_ext = Makie.lines!(axemissions, parse.(Int64, names(emissions_q)), Vector((col -> maximum(col)).(eachcol(emissions))), color=:gray)
-Makie.lines!(axemissions, parse.(Int64, names(emissions_q)), Vector((col -> minimum(col)).(eachcol(emissions))), color=:gray)
+axemissions = Axis(gemissions[1, 1], xlabel="Year", ylabel="CO₂ Emissions (GtCO₂/yr)")
+leg_med = Makie.lines!(axemissions, parse.(Int64, names(emis_q_default)), Vector(emis_q_default[2, :]), color=:darkgrey, linewidth=3)
+leg_ci = Makie.band!(axemissions, parse.(Int64, names(emis_q_default)), Vector(emis_q_default[1, :]), Vector(emis_q_default[3, :]), color=(:darkgrey, 0.2))
+Makie.lines!(axemissions, parse.(Int64, names(emis_q_optimistic)), Vector(emis_q_optimistic[2, :]), color=:darkorange, linewidth=3)
+Makie.band!(axemissions, parse.(Int64, names(emis_q_optimistic)), Vector(emis_q_optimistic[1, :]), Vector(emis_q_optimistic[3, :]), color=(:darkorange, 0.2))
+Makie.lines!(axemissions, parse.(Int64, names(emis_q_pessimistic)), Vector(emis_q_pessimistic[2, :]), color=:teal, linewidth=3)
+Makie.band!(axemissions, parse.(Int64, names(emis_q_pessimistic)), Vector(emis_q_pessimistic[1, :]), Vector(emis_q_pessimistic[3, :]), color=(:teal, 0.2))
+Makie.xlims!(axemissions, 2000, 2200)
+
 # add in the SSP emissions scenarios for context
 cmip_legend = Vector{LineElement}(undef, nrow(cmip_df)) # initialize storage for legend
-cmip_yrs = parse.(Float64, string.(names(cmip_df[!, Not(:Scenario)])))
-cmip_colors = cgrad(:Dark2_7, 7, categorical=true)
+cmip_yrs = parse.(Float64, string.(names(cmip_df[!, Not([:Scenario, :color])])))
 for i = 1:nrow(cmip_df)
-    Makie.lines!(axemissions, cmip_yrs, Vector(cmip_df[i, Not(:Scenario)]), color=cmip_colors[i], linestyle=:dash)
-    cmip_legend[i] = LineElement(color = cmip_colors[i], linestyle = :dash, linewidth=4)
-end
-Makie.xlims!(axemissions, 2000, 2300)
-
-# plot 2: CDF of emissions distribution
-axcdf = Axis(gemissions[2, 1], ylabel="Cumulative Density", xlabel="CO₂ Emissions in 2100 (Gt CO₂/yr)")
-emis_cdf = ecdf(emissions[!, :"2100"])
-emis_range = 0:maximum(emissions[!, :"2100"])
-# add in SSPs for context
-Makie.lines!(axcdf, emis_range, emis_cdf.(emis_range), color=:black)
-for i = 1:nrow(cmip_df)
-    Makie.vlines!(axcdf, cmip_df[i, end], color=cmip_colors[i], linestyle=:dash)
+    Makie.lines!(axemissions, cmip_yrs, Vector(cmip_df[i, Not([:Scenario, :color])]), color=cmip_df.color[i], linestyle=:dash, linewidth=2)
+    cmip_legend[i] = LineElement(color = cmip_df.color[i], linestyle = :dash, linewidth=4)
 end
 
-Legend(gemissions[3, 1], [[LineElement(color=:black), LineElement(color=:gray), PolyElement(color=:gray)], cmip_legend], [["Median", "Extrema", "95% Interval"], cmip_df[!, :Scenario]], ["Ensemble Summary", "Emissions Scenario"], vertical=false, framevisible=false, tellheight=true, nbanks=3, titleposition=:top, tellwidth=false)
+# plot 2: Temperature distribution
+axtemp = Axis(gemissions[2, 1], ylabel="Global Mean Temperature Anomaly (°C)", xlabel="Year")
+Makie.lines!(axtemp, parse.(Int64, names(temp_q_default)), Vector(temp_q_default[2, :]), color=:darkgrey, linewidth=3)
+Makie.band!(axtemp, parse.(Int64, names(temp_q_default)), Vector(temp_q_default[1, :]), Vector(temp_q_default[3, :]), color=(:darkgrey, 0.2))
+Makie.lines!(axtemp, parse.(Int64, names(temp_q_optimistic)), Vector(temp_q_optimistic[2, :]), color=:darkorange, linewidth=3)
+Makie.band!(axtemp, parse.(Int64, names(temp_q_optimistic)), Vector(temp_q_optimistic[1, :]), Vector(temp_q_optimistic[3, :]), color=(:darkorange, 0.2))
+Makie.lines!(axtemp, parse.(Int64, names(temp_q_pessimistic)), Vector(temp_q_pessimistic[2, :]), color=:teal, linewidth=3)
+Makie.band!(axtemp, parse.(Int64, names(temp_q_pessimistic)), Vector(temp_q_pessimistic[1, :]), Vector(temp_q_pessimistic[3, :]), color=(:teal, 0.2))
 
-Label(gemissions[1, 1, TopLeft()], "a", fontsize=22, font=:bold, padding = (10, 35, 20, 0), halign=:right)
-Label(gemissions[2, 1, TopLeft()], "b", fontsize=22, font=:bold, padding = (10, 35, 20, 0), halign=:right)
+Legend(gemissions[3, 1], [[LineElement(color=:black), PolyElement(color=(:black, 0.2))], cmip_legend], [["Median", "90% Interval"], cmip_df[!, :Scenario]], ["Ensemble Summary", "SSP Scenario"], vertical=false, framevisible=false, tellheight=true, nbanks=3, titleposition=:top, tellwidth=false)
 
-# Plots 3 and 4: 
-#   - plot 3: global mean temperatures
-#   - plot 4: global mean sea level
-axtemps = Axis(fig, xlabel="Year", ylabel="Anomaly from\n1880-1900 Mean (°C)", title="Global Mean Temperature", titlealign=:left, titlesize=18, xminorticks=IntervalsBetween(4))
-axgmsl = Axis(fig, xlabel="Year", ylabel="Anomaly from 2000 (m)", title="Global Mean Sea Level", titlealign=:left, titlesize=18, xminorticks=IntervalsBetween(4))
-fig[1, 2] = axtemps
-fig[2:3, 2] = axgmsl
-linkxaxes!(axtemps, axgmsl)
-# plot temperatures
-Makie.lines!(axtemps, parse.(Int64, names(temperature_q)), Vector(temperature_q[2, :]), color=:black)
-Makie.band!(axtemps, parse.(Int64, names(temperature_q)), Vector(temperature_q[1, :]), Vector(temperature_q[3, :]), color=(:gray, 0.2))
-Makie.lines!(axtemps, parse.(Int64, names(temperature)), Vector((col -> maximum(col)).(eachcol(temperature))), color=:gray)
-Makie.lines!(axtemps, parse.(Int64, names(temperature)), Vector((col -> minimum(col)).(eachcol(temperature))), color=:gray)
 
-Makie.lines!(axgmsl, parse.(Int64, names(gmsl_q)), Vector(gmsl_q[2, :]), color=:black)
-Makie.band!(axgmsl, parse.(Int64, names(gmsl_q)), Vector(gmsl_q[1, :]), Vector(gmsl_q[3, :]), color=(:gray, 0.2))
-Makie.lines!(axgmsl, parse.(Int64, names(gmslr)), Vector((col -> maximum(col)).(eachcol(gmslr))), color=:gray)
-Makie.lines!(axgmsl, parse.(Int64, names(gmslr)), Vector((col -> minimum(col)).(eachcol(gmslr))), color=:gray)
+# add dodge values for ar6 temperatures
+plt_dodge = -10.0:5.0:10.0
+ar6_temp.plt_x = ar6_temp.year + repeat(plt_dodge, outer=2)
+Makie.rangebars!(axtemp, ar6_temp.plt_x,  ar6_temp.min, ar6_temp.max, color=ar6_temp.color, linewidth=2)
+Makie.scatter!(axtemp, ar6_temp.plt_x, ar6_temp.median, color=ar6_temp.color, markersize=8)
 
-Makie.xlims!(axgmsl, 2000, 2300)
-hidexdecorations!(axtemps, ticks=false, grid=false, minorgrid=false)
-Label(fig[1, 2, TopLeft()], "c", fontsize=22, font=:bold, padding = (0, 35, 20, 0), halign=:right)
-Label(fig[2, 2, TopLeft()], "d", fontsize=22, font=:bold, padding = (0, 35, 20, 0), halign=:right)
+Makie.xlims!(axtemp, 2000, 2200)
+Makie.ylims!(axtemp, 0, 6)
 
-# Plots 4, 5 and 6: 
-#   - plot 4: AIS contribution to GMSLR
-#   - plot 5: GIS contribution to GMSLR
-#   - plot 6: other (non-AIS/GIS) contributions to GMSLR
-axant = Axis(fig, xlabel="Year", ylabel="(m SLE)", title="Antarctic Ice Sheet Melting", titlealign=:left, titlesize=18, xminorticks=IntervalsBetween(4))
-axgreen = Axis(fig, xlabel="Year", ylabel="(m SLE)", title="Greenland Ice Sheet Melting", titlealign=:left, titlesize=18, xminorticks=IntervalsBetween(4))
-axother = Axis(fig, xlabel="Year", ylabel="(m SLE)", title="Sea Level from Other Sources", titlealign=:left, titlesize=18, xminorticks=IntervalsBetween(4))
-linkxaxes!(axant, axgreen, axother)
+Label(gemissions[1, 1, TopLeft()], "a", fontsize=22, font=:bold, padding = (10, 50, 20, 0), halign=:right)
+Label(gemissions[2, 1, TopLeft()], "b", fontsize=22, font=:bold, padding = (10, 50, 20, 0), halign=:right)
 
-Makie.lines!(axant, parse.(Int64, names(antarctic_q)), Vector(antarctic_q[2, :]), color=:black)
-Makie.band!(axant, parse.(Int64, names(antarctic_q)), Vector(antarctic_q[1, :]), Vector(antarctic_q[3, :]), color=(:gray, 0.2))
-Makie.lines!(axant, parse.(Int64, names(antarctic)), Vector((col -> maximum(col)).(eachcol(antarctic))), color=:gray)
-Makie.lines!(axant, parse.(Int64, names(antarctic)), Vector((col -> minimum(col)).(eachcol(antarctic))), color=:gray)
+dodge = identity.(indexin(ais_all.scenario, ["Baseline", "Optimistic", "Pessimistic"]))
+color = [:darkgrey, :darkorange, :teal][dodge]
 
-Makie.lines!(axgreen, parse.(Int64, names(greenland_q)), Vector(greenland_q[2, :]), color=:black)
-Makie.band!(axgreen, parse.(Int64, names(greenland_q)), Vector(greenland_q[1, :]), Vector(greenland_q[3, :]), color=(:gray, 0.2))
-Makie.lines!(axgreen, parse.(Int64, names(greenland)), Vector((col -> maximum(col)).(eachcol(greenland))), color=:gray)
-Makie.lines!(axgreen, parse.(Int64, names(greenland)), Vector((col -> minimum(col)).(eachcol(greenland))), color=:gray)
+axgmsl = Axis(gslr[1, 1], ylabel="Global Mean Sea Level Anomaly (m)", xlabel="Year", xticks=(1:4, ["2050", "2100", "2150", "2200"]), yminorticks=IntervalsBetween(2), yminorticksvisible = true, yminorgridvisible = true)
+Makie.boxplot!(axgmsl, identity.(indexin(gmslr_all.variable, ["2050", "2100", "2150", "2200"])), Vector(gmslr_all.value), dodge=dodge, color=color)
 
-Makie.lines!(axother, parse.(Int64, names(other_q)), Vector(other_q[2, :]), color=:black)
-Makie.band!(axother, parse.(Int64, names(other_q)), Vector(other_q[1, :]), Vector(other_q[3, :]), color=(:gray, 0.2))
-Makie.lines!(axother, parse.(Int64, names(other)), Vector((col -> maximum(col)).(eachcol(other))), color=:gray)
-Makie.lines!(axother, parse.(Int64, names(other)), Vector((col -> minimum(col)).(eachcol(other))), color=:gray)
+axgis = Axis(gslr[1, 2], ylabel="GMSLR from GIS (m SLR-eq)", xlabel="Year", xticks=(1:4, ["2050", "2100", "2150", "2200"]), yminorticks=IntervalsBetween(2), yminorticksvisible = true, yminorgridvisible = true) 
+Makie.boxplot!(axgis, identity.(indexin(gis_all.variable, ["2050", "2100", "2150", "2200"])), Vector(gis_all.value), dodge=dodge, color=color)
 
-Makie.xlims!(axother, 2000, 2300)
-yspace = maximum(tight_yticklabel_spacing!, [axant, axgreen, axother])
-axant.yticklabelspace = yspace
-axgreen.yticklabelspace = yspace
-axother.yticklabelspace = yspace
-hidexdecorations!(axant, ticks=false, grid=false, minorgrid=false)
-hidexdecorations!(axgreen, ticks=false, grid=false, minorgrid=false)
-fig[1, 3] = axant
-fig[2, 3] = axgreen
-fig[3, 3] = axother
-Label(fig[1, 3, TopLeft()], "e", fontsize=22, font=:bold, padding = (0, 35, 20, 0), halign=:right)
-Label(fig[2, 3, TopLeft()], "f", fontsize=22, font=:bold, padding = (0, 35, 20, 0), halign=:right)
-Label(fig[3, 3, TopLeft()], "g", fontsize=22, font=:bold, padding = (0, 35, 20, 0), halign=:right)
+axais = Axis(gslr[2, 1], ylabel="GMSLR from AIS (m SLR-eq)", xlabel="Year", xticks=(1:4, ["2050", "2100", "2150", "2200"]), yminorticks=IntervalsBetween(2), yminorticksvisible = true, yminorgridvisible = true) 
+Makie.boxplot!(axais, identity.(indexin(ais_all.variable, ["2050", "2100", "2150", "2200"])), Vector(ais_all.value), dodge=dodge, color=color)
+Makie.ylims!(axais, -1.5, 4.75)
 
-rowsize!(gemissions, 1, Relative(0.4))
-rowsize!(gemissions, 2, Relative(0.3))
-rowsize!(gemissions, 3, Relative(0.25))
-rowgap!(gemissions, 1, 1)
-rowgap!(gemissions, 2, 50)
+axaisnofd = Axis(gslr[2, 2], ylabel="GMSLR from AIS (without fast dynamics) (m SLR-eq)", xlabel="Year", xticks=(1:4, ["2050", "2100", "2150", "2200"]), yminorticks=IntervalsBetween(2), yminorticksvisible = true, yminorgridvisible = true) 
+Makie.boxplot!(axaisnofd, identity.(indexin(ais_all.variable, ["2050", "2100", "2150", "2200"])), Vector(ais_all.value - fd_all.value), dodge=dodge, color=color)
+Makie.ylims!(axaisnofd, -1.5, 4.75)
 
-CairoMakie.save("figures/ensemble_projections.png", fig)
+Legend(gslr[3, 1:2], [LineElement(color=:grey, linewidth=4), LineElement(color=:darkorange, linewidth=4), LineElement(color=:teal, linewidth=4)], ["Baseline", "Optimistic", "Pessimistic"], ["Emissions Scenario"], orientation=:horizontal, framevisible=false, tellheight=true, titleposition=:top, tellwidth=false)
+
+Label(gslr[1, 1, TopLeft()], "c", fontsize=22, font=:bold, padding = (0, 50, 20, 0), halign=:right)
+Label(gslr[2, 1, TopLeft()], "d", fontsize=22, font=:bold, padding = (0, 50, 20, 0), halign=:right)
+Label(gslr[1, 2, TopLeft()], "e", fontsize=22, font=:bold, padding = (0, 50, 20, 0), halign=:right)
+Label(gslr[2, 2, TopLeft()], "f", fontsize=22, font=:bold, padding = (0, 50, 20, 0), halign=:right)
+
+colgap!(fig.layout, 1, Relative(0.05))
+
+CairoMakie.save(joinpath(@__DIR__, "..", "figures", "ensemble_projections.png"), fig)

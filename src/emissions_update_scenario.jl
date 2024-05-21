@@ -145,9 +145,9 @@ save(joinpath(@__DIR__, "..", "data", "emissions", "pessimistic", "parameters.cs
 
 # plot priors and scenario distributions
 fig = Figure(size=(1000, 400), fontsize=20, figure_padding=10)
-ax1 = Axis(fig[1, 1], xlabel=L"$\gamma_g$", ylabel="Probability Density")
-ax2 = Axis(fig[1, 2], xlabel=L"$t_\text{peak}$", ylabel="Probability Density")
-ax3 = Axis(fig[1, 3], xlabel=L"$\gamma_d$", ylabel="Probability Density")
+ax1 = Axis(fig[1, 1], xlabel=L"$\gamma_g$", ylabel="Probability Density", title="Baseline")
+ax2 = Axis(fig[1, 2], xlabel=L"$t_\text{peak}$", ylabel="Probability Density", title="Optimistic")
+ax3 = Axis(fig[1, 3], xlabel=L"$\gamma_d$", ylabel="Probability Density", title="Pessimistic")
 
 # first plot prior then scenario distributions
 Makie.lines!(ax1, Makie.KernelDensity.kde(rand(γ_g_pri, n_samples),bandwidth=0.002), color=:gray, label="Prior", linewidth=3)

@@ -1,6 +1,6 @@
 # Darnell-etal_2024_inprep
 
-**Rapid decarbonization reduces but does not eliminate the risk of extreme sea level rise due to uncertain Antarctic Ice Sheet marine instability**
+**Impacts of future emissions uncertainty on Antarctic instability and sea-level rise**
 
 Darnell, Chloe<sup>1</sup>, Rennels, Lisa<sup>2</sup>, Errickson, Frank<sup>3</sup>, Wong, Tony<sup>4</sup>, Srikrishnan, Vivek<sup>1\*</sup>
 
@@ -13,7 +13,7 @@ Darnell, Chloe<sup>1</sup>, Rennels, Lisa<sup>2</sup>, Errickson, Frank<sup>3</s
 
 ## Abstract
 
-Sea-level rise (SLR) poses risks to millions of people worldwide. Although these risks are partially driven by anthropogenic CO2 emissions, the relative contribution of uncertain societal choices (e.g. decarbonization) and Earth-system dynamics (e.g. Antarctic Ice Sheet (AIS) tipping points) on future sea-level projections is poorly understood.  This is in part due to a reliance on a handful of non-probabilistic and non-representative emissions scenarios, which are difficult to integrate with geophysical uncertainties. Here, we use a chained model framework to disentangle the relative impacts of these uncertainties on projected global mean sea levels. The emissions trajectory, particularly the timing of when emissions are reduced, becomes the primary driver of sea-level variability prior to 2100. Even under relatively optimistic assumptions about future emissions trajectories, there is a moderate probability of triggering AIS marine ice instabilities, resulting in high-end SLR. We quantify how delaying decarbonization by even a few decades can reduce the “safe operating space” associated with the geophysical uncertainties. Our results highlight the potential for rapid mitigation of CO<sub>2</sub>  emissions to reduce, but not eliminate, high-end SLR. However, the window to avoid future high-end SLR is closing and requires emissions to decrease rapidly and soon.
+Uncertainty in future carbon dioxide (CO<sub>2</sub>) emissions, and the geophysical response to emissions, drives variability in future sea-level rise (SLR). However, the relative contribution of emissions and geophysical dynamics (e.g. Antarctic Ice Sheet (AIS) tipping points) to future sea-level projections is poorly understood.  Here, we disentangle their relative importance by propagating several ensembles of CO<sub>2</sub> emissions trajectories, representing relevant deep uncertainties, through a calibrated carbon cycle-climate-sea-level model chain. The CO<sub>2</sub> emissions trajectory, particularly the timing of when emissions are reduced, becomes the primary driver of sea-level variability only after 2075. The most extreme global mean SLR (exceeding 4m by 2200) is projected to occur regardless of optimism about limiting CO<sub>2</sub> emissions if accelerated AIS melting occurs. Further, delaying decarbonization reduces the “safe operating space” associated with the geophysical uncertainties. Our results highlight the potential that similar adaptation requirements may be needed regardless of optimism about future levels of CO<sub>2</sub> mitigation.
 
 ## Acknowledgements
 
@@ -51,23 +51,28 @@ This code is based on Julia 1.9.4. Relevant dependencies are in the `Project.tom
     Pkg.activate(".") # from the cloned root directory
     Pkg.instantiate()
     ```
-2. To re-simulate the main ensemble, run `julia src/model_ensemble.jl`. This will write output into `results/default/`. This should take about 10 hours on a typical computer. Reducing the size of the ensemble by modifying line 37 in `src/model_ensemble.jl` will speed this up.
-3. To re-simulate the peaking ensemble, run `julia src/peaking_ensemble.jl`. This will write output into `results/peaking/`. This should take about 4 hours on a typical computer. Reducing the size of the ensemble by modifying line 37 in `src/peaking_ensemble.jl` will speed this up.
-4. To re-run the Shapley analysis, after the main ensemble is run, run `julia src/regression_drivers.jl`.This will write output into `output/shapley/`. This can take 36-48 hours and may run into memory issues, but the ensemble size or number of years can be reduced for a quick check.
+2. To re-calibrate the emissions scenario distributions, run `julia src/emissions_update_scenarios.jl`.
+3. To re-simulate the main ensemble, run `julia src/model_ensemble.jl`. There should be an argument passed to the call with a 1 for the default/baseline scenario, a 2 for the optimistic scenario, and a 3 for the pessimistic scenario. This will write output into `results/<scenario>`. This should take about 10 hours for a given scenario on a typical computer. Reducing the size of the ensemble by modifying line 37 in `src/model_ensemble.jl` will speed this up.
+4. To re-run the Shapley analysis, after the main ensemble is run, run `julia src/regression_drivers.jl`. There should be an argument passed to the call with a 1 for the default/baseline scenario, a 2 for the optimistic scenario, and a 3 for the pessimistic scenario. This will write output into `output/shapley/`. This can take 36-48 hours and may run into memory issues, but the ensemble size or number of years can be reduced for a quick check.
 
 ### Figures
 
 1. Run the simulations above or download the default and peaking results from the Zenodo repository. The Shapley output is provided with the GitHub repository or can be re-evaluated.  
 2. Run the following scripts for each of the figures and tables (none should take longer than a half-hour on a typical computer):
     
-    | Figure/Table | Script | How To Run |
-    | --- | --- | --- | 
-    | Fig. 1  | `plot_slr_temperatures.jl` | `julia plot_slr_temperatures.jl` |
-    | Fig. 2 | `plot_regression_shapley_indices.jl` | `julia plot_regression_shapley_indices.jl` |
-    | Fig. 3 | `plot_peaking_uncertainty.jl` | `julia plot_peaking_uncertainty.jl` |
-    | Fig. 4 | `scenario_discovery.jl` | `julia scenario_discovery.jl` |
-    | Supp. Fig. A1 | `plot_ensemble.jl`|  `julia plot_ensemble.jl`| 
-    | Supp. Fig. A2 | `plot_peaking_uncertainty.jl` | `julia plot_peaking_uncertainty.jl` |
-    | Supp. Fig. A3 | `plot_peaking_uncertainty_all.jl` | `julia plot_peaking_uncertainty_all.jl` |
-    | Supp. Fig. A4 | `milestone_timing.jl` | `julia milestone_timing.jl` |
-    | Supp. Fig. A5 | `scenario_discovery.jl` | `julia scenario_discovery.jl` |
+    | Figure/Table | Script | How To Run | Output File |
+    | --- | --- | --- | --- |
+    | Fig. 1  | `src/plot_cumemissions_slr.jl` | `julia src/plot_cumemissions_slr.jl` | `figures/slr_temps_all.png` |
+    | Fig. 2 | `src/plot_ensemble.jl` | `julia src/plot_ensemble.jl` | `figures/ensemble_projections.png` |
+    | Fig. 3 | `src/plot_regression_shapley_indices.jl` | `julia src/regression_shapley_indices.jl` | `figures/stacked-shapley-index-scenarios.png` |
+    | Fig. 4 | `src/scenario_discovery.jl` | `julia src/scenario_discovery.jl` | `figures/factor_map_all_scenarios.png` |
+    | Supp. Fig. A1 | `src/plot_sample_emissions.jl`|  `julia src/plot_sample_emissions.jl`| `figures/sample-emissions.png` |
+    | Supp. Fig. A2 | `src/plot_emissions.jl` | `julia src/plot_emissions.jl` | `figures/scenario_emissions.png` |
+    | Supp. Fig. A3 | `src/plot_ais_ar6.jl` | `julia src/plot_ais_ar6.jl` | `figures/slr_ar6.png` |
+    | Supp. Fig. A4 | `src/emissions_update_scenario.jl` | `julia src/emissions_update_scenario.jl` | `figures/emissions_updates.png` |
+    | Supp. Fig. A5 | `src/scenario_discovery.jl` | `julia src/scenario_discovery.jl` | `figures/feature_importance_scenarios.png` |
+
+
+### Tables
+
+To produce Supp. Tables A1, A2, and A3, run `src/shapley_table.jl`.
