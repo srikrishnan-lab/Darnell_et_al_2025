@@ -35,10 +35,18 @@ emissions = DataFrame(CSVFiles.load(joinpath(output_dir, "emissions.csv")))
 parameters = DataFrame(CSVFiles.load(joinpath(output_dir, "parameters.csv")))
 
 # normalize relative to 2000
-idx_2000 = findfirst(names(slr_out) .== "2000")
-for row in axes(slr_out,1 )
-    foreach(col -> slr_out[row, col] -= slr_out[row, idx_2000], axes(slr_out, 2))
+# function to find normalize relative to a year or mean over some normalization period)
+function normalize_data!(dat, norm_yrs=nothing)
+    # normalize to relevant period  defined by norm_yrs
+    idx_norm = findall((!isnothing).(indexin(names(dat), string.(norm_yrs))))
+    norm_mean = map(mean, eachrow(dat[:, idx_norm]))
+    for row in axes(dat, 1)
+        foreach(col -> dat[row, col] -= norm_mean[row], axes(dat, 2))
+    end
+    return dat
 end
+
+normalize_data!(slr_out, 1995:2014)
 
 # sample random features from the overall set
 idx = rand(1:size(parameters, 1), 10000)
