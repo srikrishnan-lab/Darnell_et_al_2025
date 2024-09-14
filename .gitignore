@@ -14,3 +14,6 @@
 visualization/*.jl
 */presentation/*
 *.jl~
+data/ar6/*
+data/ar6.zip
+output/ensemble_output.zip
