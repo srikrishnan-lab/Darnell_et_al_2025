@@ -162,7 +162,7 @@ ga = f_sd[1, 1] = GridLayout()
 gb = f_sd[1, 2] = GridLayout()
 gc = f_sd[1, 3] = GridLayout()
 
-fig_2100_default = plot_sos_contours(slr_default, 2100, 0.25, parameters_default,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.001, 0.001], [(1.5, 6), (1.2, 3.8)], ["Equilibrium Climate Sensitivity (°C)", "AIS Temperature Threshold (°C)"], "a", contour_colors, "Baseline"; f=ga)
+fig_2100_default = plot_sos_contours(slr_default, 2100, 0.25, parameters_default,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.001, 0.001], [(1.5, 6), (1.2, 3.8)], ["Equilibrium Climate Sensitivity (°C)", "AIS Temperature Threshold (°C)"], "a", contour_colors, ""; f=ga)
 
 fig_2100_optimistic = plot_sos_contours(slr_optimistic, 2100, 0.5, parameters_optimistic,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.001, 0.001], [(1.5, 6), (1.2, 3.8)], ["Equilibrium Climate Sensitivity (°C)", "AIS Temperature Threshold (°C)"], "b", contour_colors, "Optimistic"; f=gb)
 
