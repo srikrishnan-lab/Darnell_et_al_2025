@@ -6,7 +6,6 @@ using KernelDensity
 using Interpolations
 using Makie
 using CairoMakie
-using Loess
 using StatsBase
 using StatsPlots
 
