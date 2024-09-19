@@ -79,7 +79,6 @@ function plot_feature_importance(slr_out, year, threshold, features, subplot_lab
 end
 
 
-
 function plot_sos_contours(slr_out, year, threshold, features, key_params, stepsize, limits, labels, subplot_label, colors, title; f=Figure())
     #refit tree using just t_peak, antarctic temp threshold, and climate sensitivity
     slr_labels = ifelse.(threshold .< slr_out[:, Symbol(year)], "high", "normal")
@@ -93,18 +92,18 @@ function plot_sos_contours(slr_out, year, threshold, features, key_params, steps
     coords = Iterators.product(bds1, bds2)
 
     # plot dividing contour
-    key_features = [[2050.0, grid[1], grid[2]] for grid in coords]
+    key_features = [[2040.0, grid[1], grid[2]] for grid in coords]
     key_feature_df = DataFrame(mapreduce(permutedims, vcat, key_features), key_params)
     predict_key = MLJ.predict(slr_key_mach, key_feature_df)
     predict_class_2050 = [pred.prob_given_ref[1] for pred in predict_key]
 
-    key_features = [[2070.0, grid[1], grid[2]] for grid in coords]
+    key_features = [[2050.0, grid[1], grid[2]] for grid in coords]
     key_feature_df = DataFrame(mapreduce(permutedims, vcat, key_features), key_params)
     predict_key = MLJ.predict(slr_key_mach, key_feature_df)
     predict_class_2070 = Float64.([pred.prob_given_ref[1] for pred in predict_key])
 
 
-    key_features = [[2090.0, grid[1], grid[2]] for grid in coords]
+    key_features = [[2060.0, grid[1], grid[2]] for grid in coords]
     key_feature_df = DataFrame(mapreduce(permutedims, vcat, key_features), key_params)
     predict_key = MLJ.predict(slr_key_mach, key_feature_df)
     predict_class_2090 = Float64.([pred.prob_given_ref[1] for pred in predict_key])
@@ -116,7 +115,7 @@ function plot_sos_contours(slr_out, year, threshold, features, key_params, steps
     linkxaxes!(axmain, axtop)
     axmain.xticks = 2.0:1.0:6.0
 
-    fmap = Makie.contour!(axmain, key_feature_df[:, 2], key_feature_df[:, 3], predict_class_2050, color=colors[0.2], levels=0.0:0.5:1.0, linewidth=4, xlabel=labels[1], ylabel=labels[2])
+    fmap = Makie.contour!(axmain, key_feature_df[:, 2], key_feature_df[:, 3], predict_class_2050, color=colors[0.2], levels=0.0:0.5:1.0, linewidth=4)
     fmap3 =Makie.contour!(axmain, key_feature_df[:, 2], key_feature_df[:, 3], predict_class_2070, color=colors[0.5], levels=0.0:0.5:1.0, linewidth=4)
     fmap5 =Makie.contour!(axmain, key_feature_df[:, 2], key_feature_df[:, 3], predict_class_2090, color=colors[0.8], levels=0.0:0.5:1.0, linewidth=4)
 
@@ -148,9 +147,9 @@ ga = f_imp[1, 1]
 gb = f_imp[1, 2] 
 gc = f_imp[1, 3]
 
-fig_imp_default = plot_feature_importance(slr_default, 2100, 1.0, parameters_default, "a", "Baseline"; f=ga)
-fig_imp_optimistic = plot_feature_importance(slr_default, 2100, 0.25, parameters_optimistic, "b", "Optimistic"; f=gb)
-fig_imp_pessimistic = plot_feature_importance(slr_pessimistic, 2100, 0.5, parameters_pessimistic, "c", "Pessimistic"; f=gc)
+fig_imp_default = plot_feature_importance(slr_default, 2100, 0.3, parameters_default, "a", "Baseline"; f=ga)
+fig_imp_optimistic = plot_feature_importance(slr_default, 2100, 0.5, parameters_default, "b", "Optimistic"; f=gb)
+fig_imp_pessimistic = plot_feature_importance(slr_default, 2100, 1.0, parameters_default, "c", "Pessimistic"; f=gc)
 
 CairoMakie.save("figures/feature_importance_scenarios.png", f_imp)
 
@@ -162,11 +161,11 @@ ga = f_sd[1, 1] = GridLayout()
 gb = f_sd[1, 2] = GridLayout()
 gc = f_sd[1, 3] = GridLayout()
 
-fig_2100_default = plot_sos_contours(slr_default, 2100, 0.25, parameters_default,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.001, 0.001], [(1.5, 6), (1.2, 3.8)], ["Equilibrium Climate Sensitivity (°C)", "AIS Temperature Threshold (°C)"], "a", contour_colors, ""; f=ga)
+fig_2100_default = plot_sos_contours(slr_default, 2100, 0.3, parameters_default,  [:t_peak, :antarctic_temp_threshold, :antarctic_precip0], [0.001, 0.001], [(1.2, 3.8), (0.03, 1.5)], ["AIS TemperatureT hreshold (°C)", "AIS Precipitation Rate (m ice)"], "a", contour_colors, ""; f=ga)
 
-fig_2100_optimistic = plot_sos_contours(slr_optimistic, 2100, 0.5, parameters_optimistic,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.001, 0.001], [(1.5, 6), (1.2, 3.8)], ["Equilibrium Climate Sensitivity (°C)", "AIS Temperature Threshold (°C)"], "b", contour_colors, "Optimistic"; f=gb)
+fig_2100_optimistic = plot_sos_contours(slr_default, 2100, 0.5, parameters_optimistic,  [:t_peak, :climate_sensitivity, :rf_scale_aerosol], [0.001, 0.001], [(1.5, 6), (0.27, 3.8)], ["Equilibrium Climate Sensitivity (°C)", "Aerosol Scaling Factor"], "b", contour_colors, "Optimistic"; f=gb)
 
-fig_2100_pessimistic = plot_sos_contours(slr_pessimistic, 2100, 1.0, parameters_pessimistic,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.001, 0.001], [(1.5, 6), (1.2, 3.8)], ["Equilibrium Climate Sensitivity (°C)", "AIS Temperature Threshold (°C)"], "c", contour_colors, "Pessimistic"; f=gc)
+fig_2100_pessimistic = plot_sos_contours(slr_default, 2100, 1.0, parameters_pessimistic,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.001, 0.001], [(1.5, 6), (1.2, 3.8)], ["Equilibrium Climate Sensitivity (°C)", "AIS Temperature Threshold (°C)"], "c", contour_colors, "Pessimistic"; f=gc)
 
 # create legend
 elem_2050 = LineElement(color = contour_colors[0.0], linestyle = nothing, linewidth=4)
