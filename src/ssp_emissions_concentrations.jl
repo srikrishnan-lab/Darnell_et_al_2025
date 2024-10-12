@@ -12,6 +12,8 @@ using Interpolations
 using Mimi
 using MimiBRICK
 
+data_path = joinpath(@__DIR__, "..", "data")
+
 ## load emissions scenarios from SSP database
 emis_dat = DataFrame(CSVFiles.load(joinpath(data_path, "rcmip-emissions-annual-means-v5-1-0.csv")))
 conc_dat = DataFrame(CSVFiles.load(joinpath(data_path, "rcmip-concentrations-annual-means-v5-1-0.csv")))
