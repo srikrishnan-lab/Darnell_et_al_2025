@@ -13,9 +13,9 @@ using Mimi
 using MimiBRICK
 
 ## load emissions scenarios from SSP database
-emis_dat = DataFrame(CSVFiles.load(joinpath(@__DIR__, "..", "data", "rcmip-emissions-annual-means-v5-1-0.csv")))
-conc_dat = DataFrame(CSVFiles.load(joinpath(@__DIR__, "..", "data", "rcmip-concentrations-annual-means-v5-1-0.csv")))
-forc_dat = DataFrame(CSVFiles.load(joinpath(@__DIR__, "..", "data", "rcmip-radiative-forcing-annual-means-v5-1-0.csv")))
+emis_dat = DataFrame(CSVFiles.load(joinpath(data_path, "rcmip-emissions-annual-means-v5-1-0.csv")))
+conc_dat = DataFrame(CSVFiles.load(joinpath(data_path, "rcmip-concentrations-annual-means-v5-1-0.csv")))
+forc_dat = DataFrame(CSVFiles.load(joinpath(data_path, "rcmip-radiative-forcing-annual-means-v5-1-0.csv")))
 filter!(:Mip_Era => isequal("CMIP6"), emis_dat)
 filter!(:Mip_Era => isequal("CMIP6"), conc_dat)
 filter!(:Mip_Era => isequal("CMIP6"), forc_dat)
@@ -30,6 +30,8 @@ filter!(:Variable => isequal("Emissions|CO2"), emis_dat)
 co2_conc = filter(:Variable => isequal("Atmospheric Concentrations|CO2"), conc_dat)
 n2o_conc = filter(:Variable => isequal("Atmospheric Concentrations|N2O"), conc_dat)
 aerosol_forc = filter(:Variable => isequal("Effective Radiative Forcing|Anthropogenic|Aerosols"), forc_dat)
+co2_forc = filter(:Variable => isequal("Effective Radiative Forcing|Anthropogenic|CO2"), forc_dat)
+n2o_forc = filter(:Variable => isequal("Effective Radiative Forcing|Anthropogenic|N2O"), forc_dat)
 other_forc = filter(:Variable => isequal("Effective Radiative Forcing"), forc_dat)
 
 # interpolate co2 emissions on an annual grid using a linear interpolation
@@ -292,5 +294,5 @@ for (i, ssp) in pairs(ssps)
     end_year = 2100
     start_idx = findfirst(names(emis_dat) .== string(start_year))
     end_idx = findfirst(names(emis_dat) .== string(end_year))
-    run_model(params, collect(emis_dat[i, start_idx:end_idx]), collect(n2o_conc[i, start_idx:end_idx]), collect(aerosol_forc[i, start_idx:end_idx]), collect(other_forc[i, start_idx:end_idx]), start_year, end_year, ssp)
+    run_model(params, collect(emis_dat[i, start_idx:end_idx]), collect(n2o_conc[i, start_idx:end_idx]), collect(aerosol_forc[i, start_idx:end_idx]), collect(other_forc[i, start_idx:end_idx]) - (collect(aerosol_forc[i, start_idx:end_idx]) + collect(co2_forc[i, start_idx:end_idx]) + collect(n2o_forc[i, start_idx:end_idx])), start_year, end_year, ssp)
 end
