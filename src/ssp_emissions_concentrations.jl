@@ -292,5 +292,5 @@ for (i, ssp) in pairs(ssps)
     end_year = 2100
     start_idx = findfirst(names(emis_dat) .== string(start_year))
     end_idx = findfirst(names(emis_dat) .== string(end_year))
-    run_model(params, collect(emis_dat[i, start_idx:end_idx]), collect(n2o_conc[i, start_idx:end_idx]), collect(aerosol_forc[i, start_idx:end_idx]), collect(other_forc[i, start_idx:end_idx]) .- collect(aerosol_forc[i, start_idx:end_idx]), start_year, end_year, ssp)
+    run_model(params, collect(emis_dat[i, start_idx:end_idx]), collect(n2o_conc[i, start_idx:end_idx]), collect(aerosol_forc[i, start_idx:end_idx]), collect(other_forc[i, start_idx:end_idx]), start_year, end_year, ssp)
 end
