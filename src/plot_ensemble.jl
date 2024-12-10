@@ -223,8 +223,8 @@ Makie.ylims!(axtemp, 0, 6)
 Label(gemissions[1, 1, TopLeft()], "a", fontsize=22, font=:bold, padding = (10, 50, 20, 0), halign=:right)
 Label(gemissions[2, 1, TopLeft()], "b", fontsize=22, font=:bold, padding = (10, 50, 20, 0), halign=:right)
 
-dodge = identity.(indexin(ais_all.scenario, ["Baseline", "Optimistic", "Pessimistic"]))
-color = [:darkgrey, :darkorange, :teal][dodge]
+dodge = identity.(indexin(ais_all.scenario, ["Optimistic", "Baseline", "Pessimistic"]))
+color = [:darkorange, :darkgrey, :teal][dodge]
 
 axgmsl = Axis(gslr[1, 1], ylabel="Global Mean Sea Level Anomaly (m)", xlabel="Year", xticks=(1:4, ["2050", "2100", "2150", "2200"]), yminorticks=IntervalsBetween(2), yminorticksvisible = true, yminorgridvisible = true)
 Makie.boxplot!(axgmsl, identity.(indexin(gmslr_all.variable, ["2050", "2100", "2150", "2200"])), Vector(gmslr_all.value), dodge=dodge, color=color)
@@ -240,7 +240,7 @@ axaisnofd = Axis(gslr[2, 2], ylabel="GMSLR from AIS (without fast dynamics) (m S
 Makie.boxplot!(axaisnofd, identity.(indexin(ais_all.variable, ["2050", "2100", "2150", "2200"])), Vector(ais_all.value - fd_all.value), dodge=dodge, color=color)
 Makie.ylims!(axaisnofd, -1.5, 4.75)
 
-Legend(gslr[3, 1:2], [LineElement(color=:grey, linewidth=4), LineElement(color=:darkorange, linewidth=4), LineElement(color=:teal, linewidth=4)], ["Baseline", "Optimistic", "Pessimistic"], ["Emissions Scenario"], orientation=:horizontal, framevisible=false, tellheight=true, titleposition=:top, tellwidth=false)
+Legend(gslr[3, 1:2], [LineElement(color=:darkorange, linewidth=4), LineElement(color=:grey, linewidth=4), LineElement(color=:teal, linewidth=4)], ["Optimistic", "Baseline", "Pessimistic"], ["Emissions Scenario"], orientation=:horizontal, framevisible=false, tellheight=true, titleposition=:top, tellwidth=false)
 
 Label(gslr[1, 1, TopLeft()], "c", fontsize=22, font=:bold, padding = (0, 50, 20, 0), halign=:right)
 Label(gslr[2, 1, TopLeft()], "d", fontsize=22, font=:bold, padding = (0, 50, 20, 0), halign=:right)
