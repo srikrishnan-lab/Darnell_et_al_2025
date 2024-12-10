@@ -19,13 +19,14 @@ using Makie # plotting library
 using CairoMakie
 using Measures # adjust margins with explicit measures
 using StatsBase # get mean function and density
-using Loess
+using GLM
+using KernelDensity
 
 # load ensemble
 output_dir = "results/default"
 parameters = DataFrame(CSVFiles.load(joinpath(output_dir, "parameters.csv")))
-emissions = DataFrame(CSVFiles.load(joinpath(output_dir, "emissions.csv")))
 temperature = DataFrame(CSVFiles.load(joinpath(output_dir, "temperature.csv")))
+emissions = DataFrame(CSVFiles.load(joinpath(output_dir, "emissions.csv")))
 gmslr = DataFrame(CSVFiles.load(joinpath(output_dir, "gmslr.csv")))
 ais = DataFrame(CSVFiles.load(joinpath(output_dir, "antarctic.csv")))
 
@@ -42,99 +43,85 @@ end
 
 normalize_data!(temperature, 1850:1900)
 normalize_data!(gmslr, 1995:2014)
-normalize_data!(ais, 1995:2014)
-
-# define function to compute quantiles relative to some normalization period
-function compute_norm_quantiles(dat, norm_yrs=nothing)
-    # normalize to relevant period  defined by norm_yrs
-    if !isnothing(norm_yrs)
-        idx_norm = findall((!isnothing).(indexin(names(dat), string.(norm_yrs))))
-        for row in axes(dat, 1)
-            foreach(col -> dat[row, col] -= mean(dat[row, idx_norm]), axes(dat, 2))
-        end
-    end
-    # compute median and 95% prediction interval
-    quantiles = mapcols(col -> quantile(col, [0.05, 0.5, 0.95]), dat)
-    return quantiles
-end
-
-emissions_q = compute_norm_quantiles(emissions)
-
-idx1850 = findfirst(names(temperature) .== "1850")
-idx1900 = findfirst(names(temperature) .== "1900")
-
-# convert AIS threshold from local to global mean temperature
-# uses the regression fit from the model calibration
-ais_threshold = [15.42 .+ 0.8365 * parameters[i, :antarctic_temp_threshold] - mean(temperature[i, idx1850:idx1900]) for i in axes(temperature, 1)]
-
-# find years in which AIS threshold is exceeded
-ais_exceed_yr = Vector{Union{Float64, Nothing}}(undef, length(ais_threshold))
-for j in eachindex(ais_threshold)
-    exceed_ais = [temperature[j, k] > ais_threshold[j] for k in axes(temperature, 2)]
-    exceed_ais_idx = findfirst(exceed_ais)
-    if isnothing(exceed_ais_idx)
-        ais_exceed_yr[j] = nothing
-    else
-        ais_exceed_yr[j] = parse(Int64, names(temperature)[exceed_ais_idx])
-    end
-end
-
-ais_exceed = hcat(parameters[:, :t_peak], ais_exceed_yr)
-ais_exceed[:, 2] = replace(ais_exceed[:, 2], nothing => 2305)
 
 # find cumulative emissions from 2022--2100
 idx2100 = findfirst(names(gmslr) .== "2100")
-idx2022 = findfirst(names(gmslr) .== "2022")
 idx2000 = findfirst(names(gmslr) .== "2000")
+idx1850 = findfirst(names(gmslr) .== "1850")
+idx1900 = findfirst(names(gmslr) .== "1900")
 
-cum_emissions = [sum(emissions[i, idx2022:idx2100]) for i in 1:nrow(gmslr)]
-avg_temp = temperature[:, idx2100] - temperature[:, idx2000]  # find emissions average
-avg_emissions = cum_emissions / (2100 - 2000 + 1) # find emissions average
-avg_gmslr = gmslr[:, idx2100] - gmslr[:, idx2000]
-avg_ais = ais[:, idx2100] - ais[:, idx2000]
+avg_temp_2100 = temperature[:, idx2100] - temperature[:, idx2000]  # find emissions average
+avg_gmslr_2100 = (gmslr[:, idx2100] - gmslr[:, idx2000]) * 1000 / (2100 - 2000 + 1)
+cum_emissions = map(sum, eachrow(emissions[:, idx2000:idx2100])) 
 
 # compute densities
-dens_gmslr = kde(hcat(avg_temp, avg_gmslr))
-dens_ais = kde(hcat(avg_temp, avg_ais))
-# regress temperature against the outputs
-# bootstrap confidence intervals for the loess
-function loess_bootstrap(xs, ys; nboot=1_000, xstep=0.01, ci_width=0.95)
-    
-    mod = loess(xs, ys)
-    us = range(extrema(xs)...; step=xstep)
-    vs_out = zeros(3, length(us))
-    vs_out[2, :] .= predict(mod, us)
+dens_gmslr_2100 = kde(hcat(avg_temp_2100, avg_gmslr_2100))
+dens_emis_2100 = kde(hcat(cum_emissions, avg_gmslr_2100))
 
-    vs_boot = zeros(nboot, length(us)) # will hold all bootstrap predictions here
-    nx = length(xs)
-    # bootstrap
-    for iboot=1:nboot
-        # sample
-        idx_boot = sample( (1:nx) |> Array |> vec, nx-2, replace=true)
-        push!(idx_boot, argmin(xs))
-        push!(idx_boot, argmax(xs))
-        # run model on bootstrap sample
-        model = loess(xs[idx_boot], ys[idx_boot], span=0.5)
+ais_threshold = [15.42 .+ 0.8365 * parameters[i, :antarctic_temp_threshold] - mean(temperature[i, idx1850:idx1900]) for i in axes(temperature, 1)]
 
-        vs_boot[iboot, :] .= Loess.predict(model, us)
+ais_exceed_yr = Vector{Union{Float64, Nothing}}(undef, length(ais_threshold))
+for j in eachindex(ais_threshold)
+    exceed_ais = [temperature[j, k] > ais_threshold[j] for k in axes(temperature, 2)]
+    if sum(exceed_ais[idx1850:idx2100]) == 0
+        ais_exceed_yr[j] = 0
+    else
+        ais_exceed_yr[j] = 1
     end
-    # get confidence intervals
-    for i = 1:length(us)
-        vs_out[[1, 3], i] .= quantile(vs_boot[:, i], ((1 - ci_width) / 2, (1 + ci_width) / 2))
-    end
-    return (us, vs_out)
 end
 
-temp_grid, slr_loess = loess_bootstrap(avg_temp, avg_gmslr;nboot=200)
-temp_grid, ais_loess = loess_bootstrap(avg_temp, avg_ais)
+function fit_piecewise(dat, minbp, maxbp, step)
 
-fig = Figure(size=(400, 600), fontsize=14, figure_padding=10)
+    function add_breakpoint(dat, bp)
+        pred_var = names(dat)[1]
+        dat[!, "after_bp"] = max.(0, dat[!, pred_var] .- bp)
+        return (pred_var, dat)
+    end
+
+    min_deviance = Inf
+    best_model = nothing
+    best_bp = 0
+    current_model = nothing
+    
+    for bp in minbp:step:maxbp
+      pred_var, dat_bp = add_breakpoint(dat, bp)
+      current_model = lm(@formula(slr ~ temp + after_bp), dat_bp)
+      if deviance(current_model) < min_deviance
+        min_deviance = deviance(current_model)
+        best_model = current_model
+        best_bp = bp
+      end
+    end
+    
+    return best_model, best_bp
+  end
+
+gmslr_dat = DataFrame(temp=avg_temp_2100, slr=avg_gmslr_2100)
+emis_dat = DataFrame(temp=cum_emissions, slr=avg_gmslr_2100)
+
+temp_pred_range = 0:0.1:4
+emis_pred_range = 0:100:8500
+
+temp_lm_all = fit_piecewise(gmslr_dat, 0, 3, 0.05)
+temp_predict_all = disallowmissing!(predict(temp_lm_all[1], add_breakpoint(DataFrame(temp=temp_pred_range), temp_lm_all[2])[2], interval=:confidence, level=0.95))
+emis_lm_all = fit_piecewise(emis_dat, 0, 7500, 100)
+emis_predict_all = disallowmissing!(predict(emis_lm_all[1], add_breakpoint(DataFrame(temp=emis_pred_range), emis_lm_all[2])[2], interval=:confidence, level=0.95))
+
+temp_bp_idx = findfirst(temp_pred_range .== temp_lm_all[2])
+emis_bp_idx = findfirst(emis_pred_range .== emis_lm_all[2])
+
+temp_lm_nonexceed = lm(@formula(slr ~ temp), gmslr_dat[ais_exceed_yr .== 0, :])
+temp_predict_nonexceed = disallowmissing!(predict(temp_lm_nonexceed, DataFrame(temp=temp_pred_range), interval=:confidence, level=0.95))
+emis_lm_nonexceed = lm(@formula(slr ~ temp), emis_dat[ais_exceed_yr .== 0, :])
+emis_predict_nonexceed = disallowmissing!(predict(emis_lm_nonexceed, DataFrame(temp=emis_pred_range), interval=:confidence, level=0.95))
+
+fig = Figure(size=(700, 500), fontsize=18, figure_padding=10)
 # set up layout
 ga = fig[1, 1] = GridLayout()
-gb = fig[2, 1] = GridLayout()
+gb = fig[1, 2] = GridLayout()
 
 ax_gmt = Makie.Axis(ga[1,1])
-ax_main = Axis(ga[2, 1], xlabel="GMST Anomaly from 2000--2100 (°C)", ylabel="GSLR Rate (m)", alignmode=Inside())
+ax_main = Axis(ga[2, 1], xlabel="GMST Anomaly from 2000--2100 (°C)", ylabel="GSLR Rate (mm/yr)", alignmode=Inside())
 ax_gmslr = Makie.Axis(ga[2,2])
 
 # link axes and hide decorations for marginal plots
@@ -145,52 +132,64 @@ hidedecorations!(ax_gmt)
 hidespines!(ax_gmslr)
 hidespines!(ax_gmt)
 # plot marginal densities
-Makie.density!(ax_gmt, avg_temp)
-Makie.density!(ax_gmslr, avg_gmslr, direction=:y)
+Makie.density!(ax_gmt, avg_temp_2100)
+Makie.density!(ax_gmslr, avg_gmslr_2100, direction=:y)
 
 colsize!(ga, 2, Auto(0.25))
 rowsize!(ga, 1, Auto(0.25))
 colgap!(ga, 1, Relative(-0.01))
 rowgap!(ga, 1, Relative(-0.01))
 
-Makie.contour!(ax_main, dens_gmslr.x, dens_gmslr.y, dens_gmslr.density, levels=0.05:0.2:2.15)
-Makie.band!(ax_main, temp_grid, slr_loess[1, :], slr_loess[3, :], alpha=0.5)
-Makie.lines!(ax_main, temp_grid, slr_loess[2, :], linewidth=1)
+Makie.contour!(ax_main, dens_gmslr_2100.x, dens_gmslr_2100.y, dens_gmslr_2100.density, levels=10)
+Makie.band!(ax_main, temp_pred_range, temp_predict_all[!, :lower], temp_predict[!, :upper], color=:orange, alpha=0.3, label=false)
+lin_all = Makie.lines!(ax_main, 0:0.1:temp_lm_all[2], temp_predict_all[1:length(0:0.1:temp_lm_all[2]), :prediction], color=:orange, linewidth=2, label="All Simulations")
+Makie.lines!(ax_main, temp_lm_all[2]:0.1:4, temp_predict_all[length(0:0.1:temp_lm_all[2]):end, :prediction], color=:orange, linewidth=2, label=false, linestyle=:dash)
+Makie.band!(ax_main, temp_pred_range, temp_predict_nonexceed[!, :lower], temp_predict_nonexceed[!, :upper], color=:blue, alpha=0.3, label=false)
+lin_nonexceed = Makie.lines!(ax_main, temp_pred_range, temp_predict_nonexceed[!, :prediction], color=:blue, linewidth=2, label="Neglecting Fast Dynamics")
+Makie.scatter!(ax_main, [temp_lm_all[2]], [temp_predict_all[temp_bp_idx, :prediction]], color=:orange, label=false)
+
 
 Makie.xlims!(ax_main, -0.04, 4)
-Makie.ylims!(ax_gmslr, 0, 2)
+Makie.ylims!(ax_gmslr, 0, 20)
 
-Label(ga[1, 1, TopLeft()], "a", fontsize=18, font=:bold, padding = (0, 50, 0, 0), halign=:right)
 
 ax_gmt = Makie.Axis(gb[1,1])
-ax_main = Axis(gb[2, 1], xlabel="GMST Anomaly from 2000--2100 (°C)", ylabel="AIS Contribution (m SLE-eq)", alignmode=Inside())
+ax_main2 = Axis(gb[2, 1], xlabel="Cumulative CO₂ Emissions (Gt CO₂)", ylabel="GMSLR Rate (mm/yr)", alignmode=Inside())
 ax_ais = Makie.Axis(gb[2,2])
 
 # link axes and hide decorations for marginal plots
-linkyaxes!(ax_main, ax_ais)
-linkxaxes!(ax_main, ax_gmt)
+linkyaxes!(ax_main2, ax_ais)
+linkxaxes!(ax_main2, ax_gmt)
 hidedecorations!(ax_ais)
 hidedecorations!(ax_gmt)
 hidespines!(ax_ais)
 hidespines!(ax_gmt)
 # plot marginal densities
-Makie.density!(ax_gmt, avg_temp)
-Makie.density!(ax_ais, avg_ais, direction=:y)
+Makie.density!(ax_gmt, cum_emissions)
+Makie.density!(ax_ais, avg_gmslr_2100, direction=:y)
 
 colsize!(gb, 2, Auto(0.25))
 rowsize!(gb, 1, Auto(0.25))
 colgap!(gb, 1, Relative(-0.01))
 rowgap!(gb, 1, Relative(-0.01))
 
-Makie.contour!(ax_main, dens_ais.x, dens_ais.y, dens_ais.density, levels=0.05:0.5:4.35)
-Makie.band!(ax_main, temp_grid, ais_loess[1, :], ais_loess[3, :], alpha=0.5)
-Makie.lines!(ax_main, temp_grid, ais_loess[2, :], linewidth=1)
+Makie.contour!(ax_main2, dens_emis_2100.x, dens_emis_2100.y, dens_emis_2100.density, levels=10)
+Makie.band!(ax_main2, emis_pred_range, emis_predict_all[!, :lower], emis_predict_all[!, :upper], color=:orange, alpha=0.3, label=false)
+Makie.lines!(ax_main2, 0:100:emis_lm_all[2], emis_predict_all[1:length(0:100:emis_lm_all[2]), :prediction], color=:orange, linewidth=2, label="All Simulations")
+Makie.lines!(ax_main2, emis_lm_all[2]:100:8500, emis_predict_all[emis_bp_idx:end, :prediction], color=:orange, linewidth=2, label=false, linestyle=:dash)
+Makie.band!(ax_main2, emis_pred_range, emis_predict_nonexceed[!, :lower], emis_predict_nonexceed[!, :upper], color=:blue, alpha=0.3, label=false)
+Makie.lines!(ax_main2, emis_pred_range, emis_predict_nonexceed[!, :prediction], color=:blue, linewidth=2, label="Neglecting Fast Dynamics")
+Makie.scatter!(ax_main2, [emis_lm_all[2]], [emis_predict_all[emis_bp_idx, :prediction]], color=:orange)
 
+Makie.xlims!(ax_main2, 1000, 8500)
+Makie.ylims!(ax_ais, 0, 20)
 
-Makie.xlims!(ax_main, -0.04, 4)
-Makie.ylims!(ax_ais, -0.1, 1)
-
-
+Label(ga[1, 1, TopLeft()], "a", fontsize=18, font=:bold, padding = (0, 50, 0, 0), halign=:right)
 Label(gb[1, 1, TopLeft()], "b", fontsize=18, font=:bold, padding = (0, 50, 0, 0), halign=:right)
 
-CairoMakie.save("figures/slr_temps_all.png", fig)
+Legend(fig[2, 1:2], [lin_all, lin_nonexceed], ["All", "No Fast Dynamics"], "Simulations", framevisible=true, orientation=:horizontal)
+
+rowgap!(fig.layout, 1, Relative(0.05))
+resize_to_layout!(fig)
+
+CairoMakie.save("figures/slr_temps.png", fig)
