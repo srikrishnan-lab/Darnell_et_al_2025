@@ -147,9 +147,9 @@ ga = f_imp[1, 1]
 gb = f_imp[1, 2] 
 gc = f_imp[1, 3]
 
-fig_imp_default = plot_feature_importance(slr_default, 2100, 0.5, parameters_default, "a", "0.5m in 2100"; f=ga)
-fig_imp_optimistic = plot_feature_importance(slr_default, 2100, 0.6, parameters_default, "b", "0.6m in 2100"; f=gb)
-fig_imp_pessimistic = plot_feature_importance(slr_default, 2100, 0.7, parameters_default, "c", "0.7m in 2100"; f=gc)
+fig_imp_default = plot_feature_importance(slr_default, 2100, 0.4, parameters_default, "a", "0.4m in 2100"; f=ga)
+fig_imp_optimistic = plot_feature_importance(slr_default, 2100, 0.5, parameters_default, "b", "0.5m in 2100"; f=gb)
+fig_imp_pessimistic = plot_feature_importance(slr_default, 2100, 0.6, parameters_default, "c", "0.6m in 2100"; f=gc)
 
 CairoMakie.save("figures/feature_importance_scenarios.png", f_imp)
 
