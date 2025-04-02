@@ -20,6 +20,7 @@ using Statistics # compute mean
 using MLJ
 using EvoTrees
 using ShapML
+using StatsBase
 
 Random.seed!(1)
 
@@ -70,6 +71,7 @@ end
 function shapley_reg(yrs, features, targets)
     shap_df = DataFrame(feature_name = names(features))
     for yr in yrs
+        println("$yr")
         slr_reg_tree = EvoTreeRegressor(nrounds=200, max_depth=5)
         slr_reg_mach = machine(slr_reg_tree, features, targets[:, Symbol(yr)])
         MLJ.fit!(slr_reg_mach, force=true)
@@ -91,6 +93,5 @@ function shapley_reg(yrs, features, targets)
     return shap_df
 end
 
-yrs = 2050:10:2150
 shap_df = shapley_reg(yrs, features, targets_ar6)
 save(joinpath(@__DIR__, "..", "output", "shapley", "shapley_indices_ar6.csv"), shap_df)
