@@ -67,9 +67,6 @@ function fit_piecewise(dat, minbp, maxbp, step)
     return best_model, best_bp
   end
 
-gmslr_dat = DataFrame(temp=avg_temp_2100, slr=avg_gmslr_2100)
-emis_dat = DataFrame(temp=cum_emissions, slr=avg_gmslr_2100)
-
 # find cumulative emissions from 2022--2100
 idx2100 = findfirst(names(gmslr) .== "2100")
 idx2000 = findfirst(names(gmslr) .== "2000")
@@ -77,8 +74,15 @@ idx1850 = findfirst(names(gmslr) .== "1850")
 idx1900 = findfirst(names(gmslr) .== "1900")
 
 avg_temp_2100 = temperature[:, idx2100] - temperature[:, idx2000]  # find emissions average
+temp_diff = temperature[:, idx2000+1:idx2100] .- temperature[:, idx2000]
+temp_int = sum(Matrix(temp_diff), dims=2) ./ 100
+cum_emissions = reduce(hcat, map(cumsum, eachrow(emissions[:, idx2000+1:idx2100])))'
+emis_int = sum(Matrix(cum_emissions), dims=2) ./ 100
+
 avg_gmslr_2100 = (gmslr[:, idx2100] - gmslr[:, idx2000]) * 1000 / (2100 - 2000 + 1)
-cum_emissions = map(sum, eachrow(emissions[:, idx2000:idx2100])) 
+
+gmslr_dat = DataFrame(temp=vec(temp_int), slr=avg_gmslr_2100)
+emis_dat = DataFrame(temp=vec(emis_int), slr=avg_gmslr_2100)
 
 # check p-value for breakpoint models
 function sim_pval_dist(data, null_model, min_bp, max_bp, step, n_runs)
@@ -102,14 +106,14 @@ function sim_pval_dist(data, null_model, min_bp, max_bp, step, n_runs)
     return pvals
 end
 
-temp_lm_all = fit_piecewise(gmslr_dat, 0, 3, 0.05)
-emis_lm_all = fit_piecewise(emis_dat, 0, 7500, 100)
+temp_lm_all = fit_piecewise(gmslr_dat, 0, 4, 0.05)
+emis_lm_all = fit_piecewise(emis_dat, 1000, 4000, 100)
 
 # check p-values of simulated null (no-breakpoint) data to check for significance of breakpoint model
 n_runs = 10_000
 # use null (no-breakpoint model) to examine if significant breakpoint is found a null pattern
 pvals_temp = sim_pval_dist(DataFrame(temp=gmslr_dat[!, :temp]), lm(@formula(slr ~ temp), gmslr_dat), 0, 4, 0.1, n_runs)
-pvals_emis = sim_pval_dist(DataFrame(temp=gmslr_dat[!, :temp]), lm(@formula(slr ~ temp), gmslr_dat), 0, 4, 0.1, n_runs)
+pvals_emis = sim_pval_dist(DataFrame(temp=emis_dat[!, :temp]), lm(@formula(slr ~ temp), emis_dat), 1000, 4000, 100, n_runs)
 # check proprotion of p-values lower than original fitted p-value
 sum(pvals_temp .<= coeftable(temp_lm_all[1]).cols[4][3]) / n_runs
 sum(pvals_emis .<= coeftable(emis_lm_all[1]).cols[4][3]) / n_runs
