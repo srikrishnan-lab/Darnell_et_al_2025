@@ -66,21 +66,21 @@ function normalize_shap_groups(shap_ind)
 end
 shap_ar6 = normalize_shap_groups(shap_ind_ar6)
 # plot indices over time
-p_shap = areaplot(yrs, Matrix(shap_ar6[!, Not(:group)]), xlabel="Year", ylabel="Relative Group Importance", color_palette=group_colors, left_margin=20mm, right_margin=5mm, bottom_margin=10mm, top_margin=5mm, guidefontsize=12, tickfontsize=10, legend=:outerbottom, label=permutedims(names(shap_ar6)[2:end]), legendfontsize=11, fg_color_legend=false)
+p_shap = areaplot(yrs, Matrix(shap_ar6[!, Not(:group)]), xlabel="Year", ylabel="Relative Group Importance", color_palette=group_colors, left_margin=10mm, right_margin=5mm, bottom_margin=10mm, top_margin=5mm, guidefontsize=12, tickfontsize=10, legend=:outerbottom, label=permutedims(names(shap_ar6)[2:end]), legendfontsize=11, fg_color_legend=false)
 annotate!(p_shap, 2030, 1.05, text("a", :left, 16))
-Plots.xticks!(p_shap, 2050:25:2200)
-Plots.xlims!(p_shap, (2050, 2200))
+Plots.xticks!(p_shap, 2050:25:2150)
+Plots.xlims!(p_shap, (2050, 2150))
 Plots.ylims!(p_shap, (0, 1))
 
 # plot group importance differences betweend other scenarios and default
 shap_ind_default = DataFrame(CSVFiles.load(joinpath(output_path, "shapley_indices_default.csv")))
 shap_default = normalize_shap_groups(shap_ind_default)
-shap_diff = shap_default[:, 2:end] .- shap_ar6[:, 2:end]
+shap_diff = shap_ar6[:, 2:end] .- shap_default[1:2:22, 2:end] 
 
 function plot_differences(diff_mat, groupname, label)
-    plt = Plots.plot(yrs, diff_mat, linewidth=2, xlabel="Year", ylabel="Difference From\nBaseline", title=groupname, legend=:false, colors=[:orange], left_margin=20mm, right_margin=5mm, bottom_margin=10mm, top_margin=5mm, guidefontsize=12, tickfontsize=10, legendfontsize=10, titlefontsize=14)
-    annotate!(plt, 1950, maximum(diff_mat) + (maximum(diff_mat) - minimum(diff_mat)) / 8 , text(label, :left, 14))
-    xticks!(plt, 2050:50:2200)
+    plt = Plots.plot(yrs, diff_mat[!, groupname], linewidth=2, xlabel="Year", ylabel="Difference From\nBaseline", title=groupname, legend=:false, colors=[:orange], left_margin=10mm, right_margin=5mm, bottom_margin=10mm, top_margin=5mm, guidefontsize=11, tickfontsize=10, legendfontsize=10, titlefontsize=12)
+    annotate!(plt, 1950, maximum(diff_mat[!, groupname]) + (maximum(diff_mat[!, groupname]) - minimum(diff_mat[!, groupname])) / 8 , text(label, :left, 14))
+    xticks!(plt, 2050:50:2150)
     hline!(plt, [0.0], color=:black, linestyle=:dash)
     return plt
 end
@@ -88,11 +88,10 @@ p_emis = plot_differences(shap_diff, "Emissions", "b")
 p_clim = plot_differences(shap_diff, "Climate System", "c")
 p_ais = plot_differences(shap_diff, "Antarctic Ice Sheet", "d")
 p_gis = plot_differences(shap_diff, "Greenland Ice Sheet", "e")
-p_leg = plot((-2:-1)', (-2:-1)', lims=(0, 0.05), legendfontsize=12, legend=:bottom, fg_color_legend=false, labels=["BRICK (Default)"], fc=[:orange :teal], frame=:none, size=(5, 100))
+
 l = @layout [
-            a{0.5w} [grid(2, 2)
-                     b{0.01h}    ]
+            a{0.5w} grid(2, 2)
 ]
-plt = Plots.plot(p_shap, p_emis, p_clim, p_ais, p_gis, p_leg, layout=l, size=(1200, 600))
+plt = Plots.plot(p_shap, p_emis, p_clim, p_ais, p_gis, layout=l, size=(1200, 600))
 
 savefig(plt, "figures/stacked-shapley-index-scenarios-ar6.png")
