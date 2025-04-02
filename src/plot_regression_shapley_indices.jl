@@ -20,12 +20,14 @@ using Plots # plotting library
 using ColorSchemes
 using Measures # adjust margins with explicit measures
 using Statistics # get mean function
+using StatsPlots
+using CategoricalArrays
 
 # assume this is called from the project root directory
 output_path = "output/shapley"
 
 yrs = 2050:5:2200
-group_colors = ColorSchemes.Set1_9[1:9]
+group_colors = ColorSchemes.glasbey_hv_n256[1:9]
 
 shap_ind_default = DataFrame(CSVFiles.load(joinpath(output_path, "shapley_indices_default.csv")))
 
@@ -40,7 +42,7 @@ function normalize_shap_groups(shap_ind)
                                 "antarctic_precip0", "antarctic_kappa", "antarctic_flow0", "antarctic_runoff_height0",
                                 "antarctic_c", "antarctic_bed_height0", "antarctic_slope", "antarctic_lambda",
                                 "antarctic_temp_threshold", "anto_alpha", "anto_beta"],             
-    "Glaciers and SIC"    => ["glaciers_beta0", "glaciers_n", "glaciers_v0", "glaciers_s0"],
+    "Glaciers and Small Ice Caps"    => ["glaciers_beta0", "glaciers_n", "glaciers_v0", "glaciers_s0"],
     "Land Water Storage"  => ["lw_random_sample"],            
     "Other"   => ["sd_temp", "sd_ocean_heat", "sd_glaciers", "sd_greenland", "sd_antarctic", "sd_gmsl",
     "rho_temperature", "rho_ocean_heat", "rho_glaciers", "rho_greenland", "rho_antarctic", "rho_gmsl"],
@@ -59,14 +61,14 @@ function normalize_shap_groups(shap_ind)
     # normalize so the grouped shapley sums equal 1
     shap_norm = mapcols(x -> x / sum(x), shap_group[!, Not([:group])])
     insertcols!(shap_norm, 1, :group => shap_group.group)
-    group_order = ["Emissions", "Carbon Cycle", "Climate System", "Greenland Ice Sheet", "Antarctic Ice Sheet", "Glaciers and SIC", "Thermal Expansion", "Land Water Storage", "Other"]
+    group_order = ["Emissions", "Carbon Cycle", "Climate System", "Greenland Ice Sheet", "Antarctic Ice Sheet", "Glaciers and Small Ice Caps", "Thermal Expansion", "Land Water Storage", "Other"]
     shap_norm = shap_norm[indexin(group_order, shap_group.group), :]
     shap_permute = permutedims(shap_norm, 1)
     return shap_permute
 end
 shap_default = normalize_shap_groups(shap_ind_default)
 # plot indices over time
-p_shap = areaplot(yrs, Matrix(shap_default[!, Not(:group)]), xlabel="Year", ylabel="Relative Group Importance", color_palette=group_colors, left_margin=20mm, right_margin=5mm, bottom_margin=10mm, top_margin=5mm, guidefontsize=12, tickfontsize=10, legend=:outerbottom, label=permutedims(names(shap_default)[2:end]), legendfontsize=11, fg_color_legend=false)
+p_shap = areaplot(yrs, Matrix(shap_default[!, Not(:group)]), xlabel="Year", ylabel="Relative Group Importance", color_palette=group_colors, left_margin=10mm, right_margin=5mm, bottom_margin=10mm, top_margin=5mm, guidefontsize=12, tickfontsize=10, legend=:outerbottom, label=permutedims(names(shap_default)[2:end]), legendfontsize=11, fg_color_legend=false)
 annotate!(p_shap, 2030, 1.05, text("a", :left, 16))
 Plots.xticks!(p_shap, 2050:25:2200)
 Plots.xlims!(p_shap, (2050, 2200))
@@ -82,7 +84,7 @@ shap_pess_diff = shap_pessimistic[:, 2:end] .- shap_default[:, 2:end]
 
 function plot_differences(shap_opt_diff, shap_pess_diff, groupname, label)
     diff_mat = Matrix(hcat(shap_opt_diff[!, groupname], shap_pess_diff[!, groupname]))
-    plt = Plots.plot(yrs, diff_mat, linewidth=2, xlabel="Year", ylabel="Difference From\nBaseline", title=groupname, legend=:false, colors=[:orange, :teal], left_margin=20mm, right_margin=5mm, bottom_margin=10mm, top_margin=5mm, guidefontsize=12, tickfontsize=10, legendfontsize=10, titlefontsize=14)
+    plt = Plots.plot(yrs, diff_mat, linewidth=2, xlabel="Year", ylabel="Difference From\nBaseline", title=groupname, legend=:false, colors=[:orange, :teal], left_margin=10mm, right_margin=5mm, bottom_margin=10mm, top_margin=5mm, guidefontsize=11, tickfontsize=10, legendfontsize=10, titlefontsize=12)
     annotate!(plt, 1950, maximum(diff_mat) + (maximum(diff_mat) - minimum(diff_mat)) / 8 , text(label, :left, 14))
     xticks!(plt, 2050:50:2200)
     hline!(plt, [0.0], color=:black, linestyle=:dash)
@@ -100,3 +102,10 @@ l = @layout [
 plt = Plots.plot(p_shap, p_emis, p_clim, p_ais, p_gis, p_leg, layout=l, size=(1200, 600))
 
 savefig(plt, "figures/stacked-shapley-index-scenarios.png")
+
+# make supplemental figure for barplots in selected years
+yrlabel = repeat(["2050", "2060", "2075", "2100"], inner=ncol(shap_default)-1)
+cat = CategoricalArray(repeat(names(shap_default)[2:end], outer=4))
+levels!(cat, names(shap_default)[2:end])
+yrplt = groupedbar(yrlabel, Matrix(shap_default[[1, 3, 6, 11], 2:end])', group=cat, barposition=:dodge, xlabel="Uncertainty Group", ylabel="Normalized Shapley Value", ylims=(0, 0.6), palette=group_colors, legend=:topleft)
+savefig(yrplt, "figures/shapley-index-years.png")

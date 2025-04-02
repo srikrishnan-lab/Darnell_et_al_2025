@@ -25,7 +25,7 @@ using Statistics # get mean function
 output_path = "output/shapley"
 
 yrs = 2050:10:2150
-group_colors = ColorSchemes.Set1_9[1:9]
+group_colors = ColorSchemes.glasbey_hv_n256[1:9]
 
 shap_ind_ar6 = DataFrame(CSVFiles.load(joinpath(output_path, "shapley_indices_ar6.csv")))
 
@@ -40,7 +40,7 @@ function normalize_shap_groups(shap_ind)
                                 "antarctic_precip0", "antarctic_kappa", "antarctic_flow0", "antarctic_runoff_height0",
                                 "antarctic_c", "antarctic_bed_height0", "antarctic_slope", "antarctic_lambda",
                                 "antarctic_temp_threshold", "anto_alpha", "anto_beta"],             
-    "Glaciers and SIC"    => ["glaciers_beta0", "glaciers_n", "glaciers_v0", "glaciers_s0"],
+    "Glaciers and Small Ice Caps"    => ["glaciers_beta0", "glaciers_n", "glaciers_v0", "glaciers_s0"],
     "Land Water Storage"  => ["lw_random_sample"],            
     "Other"   => ["sd_temp", "sd_ocean_heat", "sd_glaciers", "sd_greenland", "sd_antarctic", "sd_gmsl",
     "rho_temperature", "rho_ocean_heat", "rho_glaciers", "rho_greenland", "rho_antarctic", "rho_gmsl"],
@@ -59,7 +59,7 @@ function normalize_shap_groups(shap_ind)
     # normalize so the grouped shapley sums equal 1
     shap_norm = mapcols(x -> x / sum(x), shap_group[!, Not([:group])])
     insertcols!(shap_norm, 1, :group => shap_group.group)
-    group_order = ["Emissions", "Carbon Cycle", "Climate System", "Greenland Ice Sheet", "Antarctic Ice Sheet", "Glaciers and SIC", "Thermal Expansion", "Land Water Storage", "Other"]
+    group_order = ["Emissions", "Carbon Cycle", "Climate System", "Greenland Ice Sheet", "Antarctic Ice Sheet", "Glaciers and Small Ice Caps", "Thermal Expansion", "Land Water Storage", "Other"]
     shap_norm = shap_norm[indexin(group_order, shap_group.group), :]
     shap_permute = permutedims(shap_norm, 1)
     return shap_permute
