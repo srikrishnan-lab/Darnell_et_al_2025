@@ -30,12 +30,14 @@ CD was partially funded by the College of Agricultural \& Life Sciences, Cornell
 
 ### Input Data
 
+These files are expected to be found in `data/`.
+
 - Historical CO<sub>2</sub> emissions data was obtained from the [Global Carbon Project](https://www.globalcarbonproject.org/) 2022.
 - RCP-SSP CO<sub>2</sub> emissions and non-CO<sub>2</sub> radiative forcing projections were obtained from the [CMIP6 SSP database](https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=10).
-- SNEASY-BRICK calibration file, obtained from <https://zenodo.org/records/6626335>. The scripts here are designed to use the `parameters_subsample_sneasybrick.csv` file, which is a burned-in and thinned version; some modifications might be needed if working with the full chain (`parameters_full_chain_sneasybrick.csv`).
+- SNEASY-BRICK calibration file, obtained from <https://zenodo.org/records/6626335>. The scripts here are designed to use the `parameters_subsample_sneasybrick.csv` file, which is a burned-in and thinned version; some modifications might be needed if working with the full chain (`parameters_full_chain_sneasybrick.csv`). These are expected to be found in `data/calibrated_parameters/`
 - **For BRICK benchmarking relative to AR6**: 
-  - Data for RCMIP protocol v5.1, including [concentrations](https://gitlab.com/rcmip/rcmip/-/blob/master/data/protocol/rcmip-concentrations-annual-means-v5-1-0.csv?ref_type=heads), [emissions](https://gitlab.com/rcmip/rcmip/-/blob/master/data/protocol/rcmip-emissions-annual-means-v5-1-0.csv?ref_type=heads), and [radiative forcings](https://gitlab.com/rcmip/rcmip/-/blob/master/data/protocol/rcmip-radiative-forcing-annual-means-v5-1-0.csv?ref_type=heads).
-  - [IPCC AR6 sea-level projections](https://zenodo.org/records/6382554), particularly `ar6.zip`.
+  - Data for RCMIP protocol v5.1, including [concentrations](https://gitlab.com/rcmip/rcmip/-/blob/master/data/protocol/rcmip-concentrations-annual-means-v5-1-0.csv?ref_type=heads), [emissions](https://gitlab.com/rcmip/rcmip/-/blob/master/data/protocol/rcmip-emissions-annual-means-v5-1-0.csv?ref_type=heads), and [radiative forcings](https://gitlab.com/rcmip/rcmip/-/blob/master/data/protocol/rcmip-radiative-forcing-annual-means-v5-1-0.csv?ref_type=heads). 
+  - [IPCC AR6 sea-level projections](https://zenodo.org/records/6382554), particularly `ar6.zip`. This is expected to be unzipped into `data/ar6/` by default.
 
 ### Output Data
 
@@ -57,9 +59,10 @@ This code is based on Julia 1.9.4. Relevant dependencies are in the `Project.tom
     Pkg.instantiate()
     ```
 2. To re-calibrate the emissions scenario distributions, run `julia src/emissions_update_scenarios.jl`.
-3. To re-simulate the main ensemble, run `julia src/model_ensemble.jl`. There should be an argument passed to the call with a 1 for the default/baseline scenario, a 2 for the optimistic scenario, and a 3 for the pessimistic scenario. This will write output into `results/<scenario>`. This should take about 10 hours for a given scenario on a typical computer. Reducing the size of the ensemble by modifying line 37 in `src/model_ensemble.jl` will speed this up.
+3. To re-simulate the main ensemble, run `julia src/model_ensemble.jl`. There should be an argument passed to the call with a 1 for the default/baseline scenario, a 2 for the optimistic scenario, and a 3 for the pessimistic scenario. This will write output into `results/<scenario>/`. This should take about 10 hours for a given scenario on a typical computer. Reducing the size of the ensemble by modifying line 37 in `src/model_ensemble.jl` will speed this up.
 4. To re-run the Shapley analysis, after the main ensemble is run, run `julia src/regression_drivers.jl`. There should be an argument passed to the call with a 1 for the default/baseline scenario, a 2 for the optimistic scenario, and a 3 for the pessimistic scenario. This will write output into `output/shapley/`. This can take 36-48 hours and may run into memory issues, but the ensemble size or number of years can be reduced for a quick check.
-5. To force BRICK using the SSPs, run `julia src/ssp_emissions_concentrations.jl`, which will write output into `results/ssp`. This might take 10-24 hours to run depending on the computational environment.
+5. To force BRICK using the SSPs, run `julia src/ssp_emissions_concentrations.jl`, which will write output into `results/ssp/`. This might take 10-24 hours to run depending on the computational environment.
+6. To repeat (or modify) the comparison to the AR6 temperature-based projections, run `slr_distribution_ar6.jl`, which will write output into `output/ar6/`. This requires the [AR6 sea-level projections](https://doi.org/10.5281/zenodo.14346559) and, by default, expects them to be unzipped into `data/ar6`. Since this involves re-sampling rather than simulation, it runs quickly.
 
 ### Figures
 
@@ -76,8 +79,12 @@ This code is based on Julia 1.9.4. Relevant dependencies are in the `Project.tom
     | Supp. Fig. A2 | `src/plot_emissions.jl` | `julia src/plot_emissions.jl` | `figures/scenario_emissions.png` |
     | Supp. Fig. A3 | `src/plot_ipcc_ar6.jl` | `julia src/plot_ipcc_ar6.jl` | `figures/brick_ipcc_compare.png` |
     | Supp. Fig. A4 | `src/plot_ais_ar6.jl` | `julia src/plot_ais_ar6.jl` | `figures/slr_ar6.png` |
-    | Supp. Fig. A5 | `src/emissions_update_scenario.jl` | `julia src/emissions_update_scenario.jl` | `figures/emissions_updates.png` |
-    | Supp. Fig. A6 | `src/scenario_discovery.jl` | `julia src/scenario_discovery.jl` | `figures/feature_importance_scenarios.png` |
+    | Supp. Fig. A5 | No script | No script | `figures/sneasy_diagnostic.png` |
+    | Supp. Fig. A6 | `src/emissions_update_scenario.jl` | `julia src/emissions_update_scenario.jl` | `figures/emissions_updates.png` |
+    | Supp. Fig. A7 | `src/plot_regression_shapley_indices.jl` | `julia src/plot_regression_shapley_indices.jl` | `figures/shapley-index-years.png` |
+    | Supp. Fig. A8 | `src/plot_regression_shapley_indices_ar6.jl` | `julia src/plot_regression_shapley_indices_ar6.jl` | `figures/stacked-shapley-index-scenarios-ar6.png` |
+    | Supp. Fig. A9 | `src/scenario_discovery.jl` | `julia src/scenario_discovery.jl` | `figures/feature_importance_scenarios.png` |
+    | Supp. Fig. A10 | `src/scenario_discovery_ar6.jl` | `julia src/scenario_discovery_ar6.jl` | `figures/factor_map_all_scenarios_ar6.png` |
 
 ### Tables
 
