@@ -38,8 +38,31 @@ function normalize_data!(dat, norm_yrs=nothing)
     return dat
 end
 
+function cumulative_sum(dat)
+    cum_df = zeros(size(temp))
+    for i in 1:ncol(dat)
+        if i == 1
+            cum_df[:, i] = dat[:, i]
+        else
+            cum_df[:, i] = dat[:, i] + cum_df[:, i-1]
+        end
+    end
+    return cum_df
+end
+
+# find cumulative emissions from 2022--2100
+idx2100 = findfirst(names(gmslr) .== "2100")
+idx2000 = findfirst(names(gmslr) .== "2000")
+idx1850 = findfirst(names(gmslr) .== "1850")
+idx1900 = findfirst(names(gmslr) .== "1900")
+
 normalize_data!(temperature, 1850:1900)
 normalize_data!(gmslr, 1995:2014)
+
+temp = temperature[:, idx2000:idx2100]
+temp_integral = cumulative_sum(temp)
+
+
 
 function fit_piecewise(dat, minbp, maxbp, step)
 
@@ -67,22 +90,17 @@ function fit_piecewise(dat, minbp, maxbp, step)
     return best_model, best_bp
   end
 
-# find cumulative emissions from 2022--2100
-idx2100 = findfirst(names(gmslr) .== "2100")
-idx2000 = findfirst(names(gmslr) .== "2000")
-idx1850 = findfirst(names(gmslr) .== "1850")
-idx1900 = findfirst(names(gmslr) .== "1900")
-
 avg_temp_2100 = temperature[:, idx2100] - temperature[:, idx2000]  # find emissions average
 temp_diff = temperature[:, idx2000+1:idx2100] .- temperature[:, idx2000]
 temp_int = sum(Matrix(temp_diff), dims=2) ./ 100
-cum_emissions = reduce(hcat, map(cumsum, eachrow(emissions[:, idx2000+1:idx2100])))'
-emis_int = sum(Matrix(cum_emissions), dims=2) ./ 100
+#cum_emissions = reduce(hcat, map(cumsum, eachrow(emissions[:, idx2000+1:idx2100])))'
+#emis_int = sum(Matrix(cum_emissions), dims=2) ./ 100
 
 avg_gmslr_2100 = (gmslr[:, idx2100] - gmslr[:, idx2000]) * 1000 / (2100 - 2000 + 1)
 
 gmslr_dat = DataFrame(temp=vec(temp_int), slr=avg_gmslr_2100)
-emis_dat = DataFrame(temp=vec(emis_int), slr=avg_gmslr_2100)
+#emis_dat = DataFrame(temp=vec(emis_int), slr=avg_gmslr_2100)
+
 
 # check p-value for breakpoint models
 function sim_pval_dist(data, null_model, min_bp, max_bp, step, n_runs)
@@ -106,14 +124,25 @@ function sim_pval_dist(data, null_model, min_bp, max_bp, step, n_runs)
     return pvals
 end
 
+print("2100 Model...\n")
+
 temp_lm_all = fit_piecewise(gmslr_dat, 0, 4, 0.05)
-emis_lm_all = fit_piecewise(emis_dat, 1000, 4000, 100)
+#emis_lm_all = fit_piecewise(emis_dat, 1000, 4000, 100)
 
 # check p-values of simulated null (no-breakpoint) data to check for significance of breakpoint model
-n_runs = 10_000
+n_runs = 1_000
 # use null (no-breakpoint model) to examine if significant breakpoint is found a null pattern
 pvals_temp = sim_pval_dist(DataFrame(temp=gmslr_dat[!, :temp]), lm(@formula(slr ~ temp), gmslr_dat), 0, 4, 0.1, n_runs)
-pvals_emis = sim_pval_dist(DataFrame(temp=emis_dat[!, :temp]), lm(@formula(slr ~ temp), emis_dat), 1000, 4000, 100, n_runs)
+#pvals_emis = sim_pval_dist(DataFrame(temp=emis_dat[!, :temp]), lm(@formula(slr ~ temp), emis_dat), 1000, 4000, 100, n_runs)
 # check proprotion of p-values lower than original fitted p-value
-sum(pvals_temp .<= coeftable(temp_lm_all[1]).cols[4][3]) / n_runs
-sum(pvals_emis .<= coeftable(emis_lm_all[1]).cols[4][3]) / n_runs
+print(sum(pvals_temp .<= coeftable(temp_lm_all[1]).cols[4][3]) / n_runs)
+#sum(pvals_emis .<= coeftable(emis_lm_all[1]).cols[4][3]) / n_runs
+print("\n")
+print("Integrated Model...\n")
+
+gmslr_dat = DataFrame(temp=vec(temp_integral), slr=vec(Matrix(gmslr[:, idx2000:idx2100])))
+temp_pred_range = round(minimum(gmslr_dat[:, 1]); digits=0):1:round(maximum(gmslr_dat[:, 1]); digits=0)
+
+temp_lm_all = fit_piecewise(gmslr_dat, 0, 250, 10)
+pvals_temp_int = sim_pval_dist(DataFrame(temp=gmslr_dat[!, :temp]), lm(@formula(slr ~ temp), gmslr_dat), 0, 4, 0.1, n_runs)
+print(sum(pvals_temp_int .<= coeftable(temp_lm_all[1]).cols[4][3]) / n_runs)
