@@ -228,31 +228,19 @@ function run_model(A, co2_emis, n2o_concentration, aerosol_forcings, other_forci
         normal_noise_oceanco2 = MimiBRICK.rand(Normal(0,0.4*sqrt(10)), num_years)
         car1_noise_co2 = MimiBRICK.simulate_car1_noise(num_years, α₀_CO₂, σ_co2, zeros(end_year - start_year + 1))
 
-        # define indices for the start of statistical noise in 2010
-        noise_indices = findall((in)(2010:end_year), start_year:end_year)
-
-        # add noise to results from 2010 onwards (@view macro alters array in-place)
-        @view(slr_glaciers_small_ice_caps[i,:])[noise_indices] .+= noise_glaciers[noise_indices]
-        @view(slr_greenland_icesheet[i,:])[noise_indices]      .+= noise_greenland[noise_indices]
-        @view(slr_antarctic_icesheet[i,:])[noise_indices]      .+= noise_antarctic[noise_indices]
-        @view(global_mean_sea_level_rise[i,:])[noise_indices]  .+= noise_gmsl[noise_indices]
-        @view(temperature[i,:])[noise_indices]                 .+= noise_temperature[noise_indices]
-        @view(ocean_heat[i,:])[noise_indices]                  .+= noise_ocean_heat[noise_indices]
-        @view(co2_concentrations[i,:])[noise_indices]          .+= car1_noise_co2[noise_indices]
-        @view(oceanco2[i,:])[noise_indices]                    .+= normal_noise_oceanco2[noise_indices]
-
         # define baseline indices to normalize results
-        temperature_norm_indices = findall((in)(1861:1880), start_year:end_year) # indices needed to normalize temperature anomalies relative to 1861-1880 mean
-        sealevel_norm_indices_1961_1990 = findall((in)(1961:1990), start_year:end_year) # indices needed to normalize sea level rise sources relative to the 1961-1990 mean
-        sealevel_norm_indices_1992_2001 = findall((in)(1992:2001), start_year:end_year) # indices needed to normalize sea level rise sources relative to the 1992-2001 mean
+        temperature_norm_indices = findall((in)(1850:1900), start_year:end_year) # indices needed to normalize temperature anomalies relative to 1861-1880 mean
+        sealevel_norm_indices_1995_2014 = findall((in)(1995:2014), start_year:end_year) # indices needed to normalize sea level rise sources relative to the 1992-2001 mean
         
         # subtract off the mean so we have results relative to a baseline
-        @view(slr_glaciers_small_ice_caps[i,:]) .-= mean(slr_glaciers_small_ice_caps[i,:][sealevel_norm_indices_1961_1990])
-        @view(slr_greenland_icesheet[i,:])      .-= mean(slr_greenland_icesheet[i,:][sealevel_norm_indices_1992_2001])
-        @view(slr_antarctic_icesheet[i,:])      .-= mean(slr_antarctic_icesheet[i,:][sealevel_norm_indices_1992_2001])
-        @view(global_mean_sea_level_rise[i,:])  .-= mean(global_mean_sea_level_rise[i,:][sealevel_norm_indices_1961_1990])
-        @view(temperature[i,:])                 .-= mean(temperature[i,:][temperature_norm_indices])
-        @view(ocean_heat[i,:])                  .+= ocean_heat_0 # add starting value since there is no established baseline
+        @view(slr_glaciers_small_ice_caps[i,:]) .-= mean(slr_glaciers_small_ice_caps[i,:][sealevel_norm_indices_1995_2014]) .+ noise_glaciers
+        @view(slr_greenland_icesheet[i,:])      .-= mean(slr_greenland_icesheet[i,:][sealevel_norm_indices_1995_2014]) .+ noise_greenland
+        @view(slr_antarctic_icesheet[i,:])      .-= mean(slr_antarctic_icesheet[i,:][sealevel_norm_indices_1995_2014]) .+ noise_antarctic
+        @view(global_mean_sea_level_rise[i,:])  .-= mean(global_mean_sea_level_rise[i,:][sealevel_norm_indices_1995_2014]) .+ noise_gmsl
+        @view(temperature[i,:])                 .-= mean(temperature[i,:][temperature_norm_indices]) .+ noise_temperature .+ temperature_0
+        @view(co2_concentrations) .+= car1_noise_co2
+        @view(ocean_heat[i,:])                  .+= noise_ocean_heat .+ ocean_heat_0
+        @view(oceanco2[i,:])                  .+= normal_noise_oceanco2
         
     end
 
