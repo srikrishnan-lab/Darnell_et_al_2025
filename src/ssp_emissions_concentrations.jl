@@ -238,7 +238,7 @@ function run_model(A, co2_emis, n2o_concentration, aerosol_forcings, other_forci
         @view(slr_antarctic_icesheet[i,:])      .-= mean(slr_antarctic_icesheet[i,:][sealevel_norm_indices_1995_2014]) .+ noise_antarctic
         @view(global_mean_sea_level_rise[i,:])  .-= mean(global_mean_sea_level_rise[i,:][sealevel_norm_indices_1995_2014]) .+ noise_gmsl
         @view(temperature[i,:])                 .-= mean(temperature[i,:][temperature_norm_indices]) .+ noise_temperature .+ temperature_0
-        @view(co2_concentrations) .+= car1_noise_co2
+        @view(co2_concentrations[i, :]) .+= car1_noise_co2
         @view(ocean_heat[i,:])                  .+= noise_ocean_heat .+ ocean_heat_0
         @view(oceanco2[i,:])                  .+= normal_noise_oceanco2
         

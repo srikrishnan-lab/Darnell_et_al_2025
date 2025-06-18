@@ -220,6 +220,7 @@ function run_model(calibrated_params, start_year, end_year, output_dir)
         @view(global_mean_sea_level_rise[i,:])  .-= mean(global_mean_sea_level_rise[i,:][sealevel_norm_indices_1995_2014]) .+ noise_gmsl
         @view(temperature[i,:])                 .-= mean(temperature[i,:][temperature_norm_indices]) .+ noise_temperature .+ temperature_0
         @view(ocean_heat[i,:])                  .+= noise_ocean_heat .+ ocean_heat_0 # add starting value since there is no established baseline
+        @view(co2_concentrations[i, :]) .+= car1_noise_co2
         
     end
 
