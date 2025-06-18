@@ -25,7 +25,6 @@ using Distributions # API for working with statistical distribution
 using CSVFiles # need to keep for "load" function with CSVs
 
 include(joinpath(@__DIR__, "functions.jl")) # include functions from other scripts
-include(joinpath(@__DIR__, "gsa_functions.jl"))
 include(joinpath(@__DIR__, "run_sneasy_brick.jl")) # include functions from other scripts
 
 # initial set up
