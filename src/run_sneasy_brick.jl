@@ -36,6 +36,8 @@ function run_model(calibrated_params, start_year, end_year, output_dir)
     # pre-allocate arrays to store results
     parameters                  = zeros(Float64, num_samples, 39)
     co2_emissions               = zeros(Float64, num_samples, num_years)
+    co2_concentrations          = zeros(Float64, num_samples, num_years)
+    co2_concentrations_no_noise = zeros(Float64, num_samples, num_years)
     radiative_forcing           = zeros(Float64, num_samples, num_years)
     temperature                 = zeros(Float64, num_samples, num_years)
     global_mean_sea_level_rise  = zeros(Float64, num_samples, num_years)
@@ -75,56 +77,58 @@ function run_model(calibrated_params, start_year, end_year, output_dir)
         # ---------------------------------------------------- Create and Update SNEASY-BRICK Parameters --------------------------------------------------------- #
 
         # create parameters
-        σ_temperature               = calibrated_params[i,4]    # statistical noise parameter
-        σ_ocean_heat                = calibrated_params[i,5]    # statistical noise parameter
-        σ_glaciers                  = calibrated_params[i,6]    # statistical noise parameter
-        σ_greenland                 = calibrated_params[i,7]    # statistical noise parameter
-        σ_antarctic                 = calibrated_params[i,8]    # statistical noise parameter
-        σ_gmsl                      = calibrated_params[i,9]    # statistical noise parameter
-        ρ_temperature               = calibrated_params[i,10]   # statistical noise parameter
-        ρ_ocean_heat                = calibrated_params[i,11]   # statistical noise parameter
-        ρ_glaciers                  = calibrated_params[i,12]   # statistical noise parameter
-        ρ_greenland                 = calibrated_params[i,13]   # statistical noise parameter
-        ρ_antarctic                 = calibrated_params[i,14]   # statistical noise parameter
-        ρ_gmsl                      = calibrated_params[i,15]   # statistical noise parameter
-        CO2_0                       = calibrated_params[i,16]
-        N2O_0                       = calibrated_params[i,17]
-        temperature_0               = calibrated_params[i,18]   # statistical noise parameter (will not use)
-        ocean_heat_0                = calibrated_params[i,19]   # statistical noise parameter
-        thermal_s0                  = calibrated_params[i,20]
-        greenland_v0                = calibrated_params[i,21]
-        glaciers_v0                 = calibrated_params[i,22]
-        glaciers_s0                 = calibrated_params[i,23]
-        antarctic_s0                = calibrated_params[i,24]
-        Q10                         = calibrated_params[i,25]
-        CO2_fertilization           = calibrated_params[i,26]
-        CO2_diffusivity             = calibrated_params[i,27]
-        heat_diffusivity            = calibrated_params[i,28]
-        rf_scale_aerosol            = calibrated_params[i,29]
-        climate_sensitivity         = calibrated_params[i,30]
-        thermal_alpha               = calibrated_params[i,31]
-        greenland_a                 = calibrated_params[i,32]
-        greenland_b                 = calibrated_params[i,33]
-        greenland_alpha             = calibrated_params[i,34]
-        greenland_beta              = calibrated_params[i,35]
-        glaciers_beta0              = calibrated_params[i,36]
-        glaciers_n                  = calibrated_params[i,37]
-        anto_alpha                  = calibrated_params[i,38]
-        anto_beta                   = calibrated_params[i,39]
-        antarctic_gamma             = calibrated_params[i,40]
-        antarctic_alpha             = calibrated_params[i,41]
-        antarctic_mu                = calibrated_params[i,42]
-        antarctic_nu                = calibrated_params[i,43]
-        antarctic_precip0           = calibrated_params[i,44]
-        antarctic_kappa             = calibrated_params[i,45]
-        antarctic_flow0             = calibrated_params[i,46]
-        antarctic_runoff_height0    = calibrated_params[i,47]
-        antarctic_c                 = calibrated_params[i,48]
-        antarctic_bed_height0       = calibrated_params[i,49]
-        antarctic_slope             = calibrated_params[i,50]
-        antarctic_lambda            = calibrated_params[i,51]
-        antarctic_temp_threshold    = calibrated_params[i,52]
-        lw_random_sample            = calibrated_params[i,53]
+        σ_temperature               = A[i,1]    # statistical noise parameter
+        σ_ocean_heat                = A[i,2]    # statistical noise parameter
+        σ_glaciers                  = A[i,3]    # statistical noise parameter
+        σ_greenland                 = A[i,4]    # statistical noise parameter
+        σ_antarctic                 = A[i,5]    # statistical noise parameter
+        σ_gmsl                      = A[i,6]    # statistical noise parameter
+        σ_co2                       = A[i,7]
+        ρ_temperature               = A[i,8]   # statistical noise parameter
+        ρ_ocean_heat                = A[i,9]   # statistical noise parameter
+        ρ_glaciers                  = A[i,10]   # statistical noise parameter
+        ρ_greenland                 = A[i,11]   # statistical noise parameter
+        ρ_antarctic                 = A[i,12]   # statistical noise parameter
+        ρ_gmsl                      = A[i,13]   # statistical noise parameter
+        α₀_CO₂                      = A[i,14]
+        CO2_0                       = A[i,15]
+        N2O_0                       = A[i,16]
+        temperature_0               = A[i,17]   # statistical noise parameter (will not use)
+        ocean_heat_0                = A[i,18]   # statistical noise parameter
+        thermal_s0                  = A[i,19]
+        greenland_v0                = A[i,20]
+        glaciers_v0                 = A[i,21]
+        glaciers_s0                 = A[i,22]
+        antarctic_s0                = A[i,23]
+        Q10                         = A[i,24]
+        CO2_fertilization           = A[i,25]
+        CO2_diffusivity             = A[i,26]
+        heat_diffusivity            = A[i,27]
+        rf_scale_aerosol            = A[i,28]
+        climate_sensitivity         = A[i,29]
+        thermal_alpha               = A[i,30]
+        greenland_a                 = A[i,31]
+        greenland_b                 = A[i,32]
+        greenland_alpha             = A[i,33]
+        greenland_beta              = A[i,34]
+        glaciers_beta0              = A[i,35]
+        glaciers_n                  = A[i,36]
+        anto_alpha                  = A[i,37]
+        anto_beta                   = A[i,38]
+        antarctic_gamma             = A[i,39]
+        antarctic_alpha             = A[i,40]
+        antarctic_mu                = A[i,41]
+        antarctic_nu                = A[i,42]
+        antarctic_precip0           = A[i,43]
+        antarctic_kappa             = A[i,44]
+        antarctic_flow0             = A[i,45]
+        antarctic_runoff_height0    = A[i,46]
+        antarctic_c                 = A[i,47]
+        antarctic_bed_height0       = A[i,48]
+        antarctic_slope             = A[i,49]
+        antarctic_lambda            = A[i,50]
+        antarctic_temp_threshold    = A[i,51]
+        lw_random_sample            = A[i,52]
 
         # ----- Land Water Storage ----- #
         update_param!(m, :landwater_storage, :lws_random_sample, fill(lw_random_sample, num_years))
@@ -189,6 +193,8 @@ function run_model(calibrated_params, start_year, end_year, output_dir)
         # write current sample to respective array
         parameters[i,:]                     = param_vals                                                # values for each parameter
         co2_emissions[i,:]                  = m[:ccm, :CO2_emissions] .* 3.67                           # total CO₂ emissions (GtCO₂/yr)
+        co2_concentrations[i, :]            = m[:ccm, :atmco2]
+        co2_concentrations_no_noise[i, :]   = m[:ccm, :atmco2]
         radiative_forcing[i,:]              = m[:radiativeforcing, :rf]                                 # global radiative forcing (top of atmosphere) (W/m^2)
         temperature[i,:]                    = m[:ccm, :temp]                                            # global mean temperature anomaly (K), relative to preindustrial
         global_mean_sea_level_rise[i,:]     = m[:global_sea_level, :sea_level_rise]                     # total sea level rise from all components (m)
@@ -198,6 +204,8 @@ function run_model(calibrated_params, start_year, end_year, output_dir)
         slr_landwater_storage[i,:]          = m[:global_sea_level, :slr_landwater_storage]              # sea level rise from landwater storage (m)
         slr_thermal_expansion[i,:]          = m[:global_sea_level, :slr_thermal_expansion]              # sea level rise from thermal expansion (m)
         ocean_heat[i,:]                     = m[:doeclim, :heat_mixed] .+ m[:doeclim, :heat_interior]   # sum of ocean heat content anomaly in mixed layer and interior ocean (10²² J)
+        car1_noise_co2 = MimiBRICK.simulate_car1_noise(num_years, α₀_CO₂, σ_co2, zeros(end_year - start_year + 1))
+
 
         # -------------------------------------------------- Incorporate statistical noise for current run ----------------------------------------------------- #
         

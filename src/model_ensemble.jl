@@ -46,7 +46,6 @@ emissions_params = emis_params[emis_idx, :]
 
 # read in subsample of MCMC parameters
 mcmc_params = DataFrame(CSVFiles.load(joinpath(@__DIR__, "..", "data", "calibrated_parameters", "parameters_subsample_sneasybrick.csv"))) # read in subsample
-select!(mcmc_params, Not([:sigma_whitenoise_co2, :alpha0_CO2])) # drop these parameters related to CO2 flux postprocessing; we don't use them
 num_params = size(mcmc_params, 2)
 
 # sample values for each parameter to create A2 and B2 matrices
