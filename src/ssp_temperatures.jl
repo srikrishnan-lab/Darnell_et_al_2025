@@ -7,8 +7,9 @@ using CSVFiles # read CSV of Shapley indices
 using DataFrames # data structure for indices
 using PrettyTables # table formatting
 using Crayons # crayons for highlighting
+using StatsBase
 
-ssp_path = joinpath(@__DIR__, "results", "ssp")
+ssp_path = joinpath(@__DIR__, "..", "results", "ssp")
 ssps = readdir(ssp_path)
 
 function compute_norm_quantiles(dat; norm_yrs=nothing, mean_yrs=nothing)
