@@ -124,10 +124,10 @@ end
 
 # fit model for 2100 temps/GMSLR
 temp_pred_range = round(minimum(gmslr_dat[:, 1]); digits=0):0.05:round(maximum(gmslr_dat[:, 1]); digits=0)
-
+temp_pred_nonexceed_range = 0:0.05:2
 temp_lm_all, temp_predict_all = fit_and_predict(gmslr_dat, temp_pred_range, 0.05)
 temp_bp_idx = findfirst(temp_pred_range .== temp_lm_all[2])
-temp_lm_nonexceed, temp_predict_nonexceed = fit_and_predict(gmslr_dat[gmslr_dat.exceed .== 0, :], 0:0.05:4, 0.05)
+temp_lm_nonexceed, temp_predict_nonexceed = fit_and_predict(gmslr_dat[gmslr_dat.exceed .== 0, :], temp_pred_nonexceed_range, 0.05)
 
 # fit model for time-integrated temperature
 gmslr_dat = DataFrame(temp=vec(temp_integral), slr=vec(Matrix(gmslr[:, idx2000:idx2100])), exceed=vec(exceed_ais))
@@ -143,12 +143,12 @@ int_lm_exceed, int_predict_exceed = fit_and_predict(gmslr_dat[gmslr_dat.exceed .
 
 # make plot
 colors = ColorSchemes.tol_bright[[6, 3, 2]]
-fig = Figure(size=(700, 500), fontsize=16, figure_padding=10)
+fig = Figure(size=(700, 300), fontsize=16, figure_padding=10)
 # set up layout
 ga = fig[1, 1] = GridLayout()
 gb = fig[1, 2] = GridLayout()
 
-ax_main = Axis(ga[1, 1], xlabel="GMST Anomaly (°C/century)", ylabel="GMSLR (m/century)", alignmode=Inside())
+ax_main = Axis(ga[1, 1], xlabel="GMT Anomaly (°C/century)", ylabel="GMSLR (m/century)", alignmode=Inside())
 
 Makie.contour!(ax_main, dens_gmslr_2100.x, dens_gmslr_2100.y, dens_gmslr_2100.density, levels=10)
 Makie.band!(ax_main, temp_pred_range, temp_predict_all[!, :lower], temp_predict_all[!, :upper], color=colors[1], alpha=0.3, label=false)
@@ -157,10 +157,12 @@ Makie.band!(ax_main, temp_pred_nonexceed_range, temp_predict_nonexceed[!, :lower
 Makie.lines!(ax_main, temp_pred_nonexceed_range, temp_predict_nonexceed[!, :prediction], color=colors[2], linewidth=2, label="Neglecting Fast Dynamics")
 Makie.scatter!(ax_main, [temp_lm_all[2]], [temp_predict_all[temp_bp_idx, :prediction]], color=colors[1], label=false)
 
+Makie.xlims!(ax_main, 0, 2)
+Makie.ylims!(ax_main, -0.04, 2.5)
 
 #Makie.xlims!(ax_main, -0.04, 2)
 
-ax_main2 = Axis(gb[1, 1], xlabel="GMST Time-Integral (°C-yr)", ylabel="GMSLR (m)", alignmode=Inside())
+ax_main2 = Axis(gb[1, 1], xlabel="GMT Time-Integral (°C-yr)", ylabel="GMSLR (m)", alignmode=Inside())
 
 Makie.band!(ax_main2, int_pred_range, int_predict_all[!, :lower], int_predict_all[!, :upper], color=colors[1], alpha=0.2, label=false)
 lin_all = Makie.lines!(ax_main2, int_pred_range, int_predict_all[:, :prediction], color=colors[1], linewidth=2, label="All Simulations")
@@ -170,6 +172,8 @@ Makie.band!(ax_main2, int_pred_exceed_range, int_predict_exceed[!, :lower], int_
 lin_exceed = Makie.lines!(ax_main2, int_pred_exceed_range, int_predict_exceed[!, :prediction], color=colors[3], linewidth=2, label="Triggering Fast Dynamics")
 Makie.scatter!(ax_main2, [int_lm_all[2]], [int_predict_all[int_bp_idx, :prediction]], color=colors[1], label=false)
 
+Makie.xlims!(ax_main2, 0, 275)
+Makie.ylims!(ax_main2, -0.04, 2.25)
 
 Label(ga[1, 1, TopLeft()], "a", fontsize=18, font=:bold, padding = (0, 50, 0, 0), halign=:right)
 Label(gb[1, 1, TopLeft()], "b", fontsize=18, font=:bold, padding = (0, 50, 0, 0), halign=:right)
