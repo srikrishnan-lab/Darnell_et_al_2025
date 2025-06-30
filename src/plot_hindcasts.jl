@@ -9,7 +9,7 @@ using CairoMakie
 using Measures # adjust margins with explicit measures
 using StatsBase # get mean function and density
 
-output_dir = "results/default"
+output_dir = joinpath(@__DIR__, "..", "results", "default")
 parameters = DataFrame(CSVFiles.load(joinpath(output_dir, "parameters.csv")))
 temperature = DataFrame(CSVFiles.load(joinpath(output_dir, "temperature.csv")))
 conc_co2 = DataFrame(CSVFiles.load(joinpath("results", "ssp", "ssp119", "concentrations.csv")))

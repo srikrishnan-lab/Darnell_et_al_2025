@@ -22,7 +22,7 @@ using StatsBase # get mean function and density
 using GLM
 
 # load ensemble
-output_dir = "results/default"
+output_dir = joinpath(@__DIR__, "..", "results", "default")
 temperature = DataFrame(CSVFiles.load(joinpath(output_dir, "temperature.csv")))
 emissions = DataFrame(CSVFiles.load(joinpath(output_dir, "emissions.csv")))
 gmslr = DataFrame(CSVFiles.load(joinpath(output_dir, "gmslr.csv")))
@@ -130,7 +130,7 @@ temp_lm_all = fit_piecewise(gmslr_dat, 0, 4, 0.05)
 #emis_lm_all = fit_piecewise(emis_dat, 1000, 4000, 100)
 
 # check p-values of simulated null (no-breakpoint) data to check for significance of breakpoint model
-n_runs = 1_000
+n_runs = 10_000
 # use null (no-breakpoint model) to examine if significant breakpoint is found a null pattern
 pvals_temp = sim_pval_dist(DataFrame(temp=gmslr_dat[!, :temp]), lm(@formula(slr ~ temp), gmslr_dat), 0, 4, 0.1, n_runs)
 #pvals_emis = sim_pval_dist(DataFrame(temp=emis_dat[!, :temp]), lm(@formula(slr ~ temp), emis_dat), 1000, 4000, 100, n_runs)

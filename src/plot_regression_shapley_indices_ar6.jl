@@ -22,7 +22,7 @@ using Measures # adjust margins with explicit measures
 using Statistics # get mean function
 
 # assume this is called from the project root directory
-output_path = "output/shapley"
+output_path = joinpath(@__DIR__, "..", "output", "shapley")
 
 yrs = 2050:10:2150
 group_colors = ColorSchemes.glasbey_hv_n256[1:9]

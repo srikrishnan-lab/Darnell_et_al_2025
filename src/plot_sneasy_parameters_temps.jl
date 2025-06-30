@@ -10,7 +10,7 @@ using Measures # adjust margins with explicit measures
 using StatsBase # get mean function and density
 using Interpolations
 
-data_path = joinpath(@__DIR__, ".."  "data")
+data_path = joinpath(@__DIR__, "..",  "data")
 
 ## load emissions scenarios from SSP database
 emis_dat = DataFrame(CSVFiles.load(joinpath(data_path, "rcmip-emissions-annual-means-v5-1-0.csv")))
@@ -34,7 +34,6 @@ parameters = DataFrame(CSVFiles.load(joinpath(output_dir, "default", "parameters
 temperature = DataFrame(CSVFiles.load(joinpath(output_dir, "default","temperature.csv")))
 conc_co2 = DataFrame(CSVFiles.load(joinpath(output_dir, "default", "concentrations.csv")))
 ohc = DataFrame(CSVFiles.load(joinpath(output_dir, "default", "ocean_heat.csv")))
-rf = DataFrame(CSVFiles.load(joinpath(output_dir, "default", "radiative_forcing.csv")))
 
 
 idx2020 = findfirst(names(co2_forc) .== "2020")

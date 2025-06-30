@@ -24,7 +24,7 @@ using GLM
 using KernelDensity
 
 # load ensemble
-output_dir = "results/default"
+output_dir = joinpath(@__DIR__, "..", "results", "default")
 parameters = DataFrame(CSVFiles.load(joinpath(output_dir, "parameters.csv")))
 temperature = DataFrame(CSVFiles.load(joinpath(output_dir, "temperature.csv")))
 gmslr = DataFrame(CSVFiles.load(joinpath(output_dir, "gmslr.csv")))
