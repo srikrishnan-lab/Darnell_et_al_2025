@@ -109,9 +109,6 @@ normalize_data!(gmslr_pessimistic, 1995:2014)
 normalize_data!(gis_default, 1995:2014)
 normalize_data!(gis_optimistic, 1995:2014)
 normalize_data!(gis_pessimistic, 1995:2014)
-normalize_data!(gis_default, 1995:2014)
-normalize_data!(gis_optimistic, 1995:2014)
-normalize_data!(gis_pessimistic, 1995:2014)
 
 # compute quantiles
 emis_q_default =  mapcols(col -> quantile(col, [0.05, 0.5, 0.95]), emis_default)
@@ -176,18 +173,21 @@ fd_yr_optimistic = identity.(filter(x -> !isnothing(x), find_fd_year(fd_optimist
 fd_yr_pessimistic = identity.(filter(x -> !isnothing(x), find_fd_year(fd_pessimistic, 1850:2300)))
 
 ## make plot
-fig = Figure(size=(1000, 800), fontsize=14, figure_padding=20)
+inch = 96
+mmx = inch / 25.4
+fig = Figure(size=(180mmx, 120mmx), fontsize=9, figure_padding=10)
 
 gemissions = fig[1:2, 1] = GridLayout()
 gslr = fig[1:2, 2:3] = GridLayout()
 
 # plot 1: emissions distribution
-axemissions = Axis(gemissions[1, 1], xlabel="Year", ylabel="CO₂ Emissions (GtCO₂/yr)")
-leg_med = Makie.lines!(axemissions, parse.(Int64, names(emis_q_default)), Vector(emis_q_default[2, :]), color=:darkgrey, linewidth=3)
+axemissions = Axis(gemissions[1, 1], xlabel="Year", ylabel="CO₂ Emissions (GtCO₂/yr)", xgridvisible=false, ygridvisible=false)
+Makie.hlines!(axemissions, [0], color=:black, linewidth=1, alpha=0.8)
+leg_med = Makie.lines!(axemissions, parse.(Int64, names(emis_q_default)), Vector(emis_q_default[2, :]), color=:darkgrey, linewidth=2)
 leg_ci = Makie.band!(axemissions, parse.(Int64, names(emis_q_default)), Vector(emis_q_default[1, :]), Vector(emis_q_default[3, :]), color=(:darkgrey, 0.2))
-Makie.lines!(axemissions, parse.(Int64, names(emis_q_optimistic)), Vector(emis_q_optimistic[2, :]), color=:darkorange, linewidth=3)
+Makie.lines!(axemissions, parse.(Int64, names(emis_q_optimistic)), Vector(emis_q_optimistic[2, :]), color=:darkorange, linewidth=2)
 Makie.band!(axemissions, parse.(Int64, names(emis_q_optimistic)), Vector(emis_q_optimistic[1, :]), Vector(emis_q_optimistic[3, :]), color=(:darkorange, 0.2))
-Makie.lines!(axemissions, parse.(Int64, names(emis_q_pessimistic)), Vector(emis_q_pessimistic[2, :]), color=:teal, linewidth=3)
+Makie.lines!(axemissions, parse.(Int64, names(emis_q_pessimistic)), Vector(emis_q_pessimistic[2, :]), color=:teal, linewidth=2)
 Makie.band!(axemissions, parse.(Int64, names(emis_q_pessimistic)), Vector(emis_q_pessimistic[1, :]), Vector(emis_q_pessimistic[3, :]), color=(:teal, 0.2))
 Makie.xlims!(axemissions, 2000, 2200)
 
@@ -200,12 +200,12 @@ for i = 1:nrow(cmip_df)
 end
 
 # plot 2: Temperature distribution
-axtemp = Axis(gemissions[2, 1], ylabel="Global Mean Temperature Anomaly (°C)", xlabel="Year")
-Makie.lines!(axtemp, parse.(Int64, names(temp_q_default)), Vector(temp_q_default[2, :]), color=:darkgrey, linewidth=3)
+axtemp = Axis(gemissions[2, 1], ylabel="GMT Anomaly (°C)", xlabel="Year", xgridvisible=false, ygridvisible=false)
+Makie.lines!(axtemp, parse.(Int64, names(temp_q_default)), Vector(temp_q_default[2, :]), color=:darkgrey, linewidth=2)
 Makie.band!(axtemp, parse.(Int64, names(temp_q_default)), Vector(temp_q_default[1, :]), Vector(temp_q_default[3, :]), color=(:darkgrey, 0.2))
-Makie.lines!(axtemp, parse.(Int64, names(temp_q_optimistic)), Vector(temp_q_optimistic[2, :]), color=:darkorange, linewidth=3)
+Makie.lines!(axtemp, parse.(Int64, names(temp_q_optimistic)), Vector(temp_q_optimistic[2, :]), color=:darkorange, linewidth=2)
 Makie.band!(axtemp, parse.(Int64, names(temp_q_optimistic)), Vector(temp_q_optimistic[1, :]), Vector(temp_q_optimistic[3, :]), color=(:darkorange, 0.2))
-Makie.lines!(axtemp, parse.(Int64, names(temp_q_pessimistic)), Vector(temp_q_pessimistic[2, :]), color=:teal, linewidth=3)
+Makie.lines!(axtemp, parse.(Int64, names(temp_q_pessimistic)), Vector(temp_q_pessimistic[2, :]), color=:teal, linewidth=2)
 Makie.band!(axtemp, parse.(Int64, names(temp_q_pessimistic)), Vector(temp_q_pessimistic[1, :]), Vector(temp_q_pessimistic[3, :]), color=(:teal, 0.2))
 
 Legend(gemissions[3, 1], [[LineElement(color=:black), PolyElement(color=(:black, 0.2))], cmip_legend], [["Median", "90% Interval"], cmip_df[!, :Scenario]], ["Ensemble Summary", "SSP Scenario"], vertical=false, framevisible=false, tellheight=true, nbanks=3, titleposition=:top, tellwidth=false)
@@ -214,39 +214,43 @@ Legend(gemissions[3, 1], [[LineElement(color=:black), PolyElement(color=(:black,
 # add dodge values for ar6 temperatures
 plt_dodge = -10.0:5.0:10.0
 ar6_temp.plt_x = ar6_temp.year + repeat(plt_dodge, outer=2)
-Makie.rangebars!(axtemp, ar6_temp.plt_x,  ar6_temp.min, ar6_temp.max, color=ar6_temp.color, linewidth=2)
-Makie.scatter!(axtemp, ar6_temp.plt_x, ar6_temp.median, color=ar6_temp.color, markersize=8)
+Makie.rangebars!(axtemp, ar6_temp.plt_x,  ar6_temp.min, ar6_temp.max, color=ar6_temp.color, linewidth=1)
+Makie.scatter!(axtemp, ar6_temp.plt_x, ar6_temp.median, color=ar6_temp.color, markersize=5)
 
 Makie.xlims!(axtemp, 2000, 2200)
 Makie.ylims!(axtemp, 0, 6)
 
-Label(gemissions[1, 1, TopLeft()], "a", fontsize=22, font=:bold, padding = (10, 50, 20, 0), halign=:right)
-Label(gemissions[2, 1, TopLeft()], "b", fontsize=22, font=:bold, padding = (10, 50, 20, 0), halign=:right)
+Label(gemissions[1, 1, TopLeft()], "a", fontsize=10, font=:bold, padding = (10, 50, 20, 0), halign=:right)
+Label(gemissions[2, 1, TopLeft()], "b", fontsize=10, font=:bold, padding = (10, 50, 20, 0), halign=:right)
 
 dodge = identity.(indexin(ais_all.scenario, ["Optimistic", "Baseline", "Pessimistic"]))
 color = [:darkorange, :darkgrey, :teal][dodge]
 
-axgmsl = Axis(gslr[1, 1], ylabel="Global Mean Sea Level Anomaly (m)", xlabel="Year", xticks=(1:4, ["2050", "2100", "2150", "2200"]), yminorticks=IntervalsBetween(2), yminorticksvisible = true, yminorgridvisible = true)
-Makie.boxplot!(axgmsl, identity.(indexin(gmslr_all.variable, ["2050", "2100", "2150", "2200"])), Vector(gmslr_all.value), dodge=dodge, color=color)
+axgmsl = Axis(gslr[1, 1], ylabel="GMSL Anomaly (m)", xlabel="Year", xticks=(1:4, ["2050", "2100", "2150", "2200"]), yminorticks=IntervalsBetween(2), yminorticksvisible = true, xgridvisible=false, ygridvisible=false)
+Makie.hlines!(axgmsl, [0], color=:black, alpha=0.8, linewidth=1)
+Makie.boxplot!(axgmsl, identity.(indexin(gmslr_all.variable, ["2050", "2100", "2150", "2200"])), Vector(gmslr_all.value), dodge=dodge, color=color, markersize=5)
 
-axgis = Axis(gslr[1, 2], ylabel="GMSLR from GIS (m SLR-eq)", xlabel="Year", xticks=(1:4, ["2050", "2100", "2150", "2200"]), yminorticks=IntervalsBetween(2), yminorticksvisible = true, yminorgridvisible = true) 
-Makie.boxplot!(axgis, identity.(indexin(gis_all.variable, ["2050", "2100", "2150", "2200"])), Vector(gis_all.value), dodge=dodge, color=color)
+axgis = Axis(gslr[1, 2], ylabel="GMSLR from GIS (m SLR-eq)", xlabel="Year", xticks=(1:4, ["2050", "2100", "2150", "2200"]), yminorticks=IntervalsBetween(2), yminorticksvisible = true, xgridvisible=false, ygridvisible=false) 
+Makie.hlines!(axgis, [0], color=:black, alpha=0.8, linewidth=1)
+Makie.boxplot!(axgis, identity.(indexin(gis_all.variable, ["2050", "2100", "2150", "2200"])), Vector(gis_all.value), dodge=dodge, color=color, markersize=5)
 
-axais = Axis(gslr[2, 1], ylabel="GMSLR from AIS (m SLR-eq)", xlabel="Year", xticks=(1:4, ["2050", "2100", "2150", "2200"]), yminorticks=IntervalsBetween(2), yminorticksvisible = true, yminorgridvisible = true) 
-Makie.boxplot!(axais, identity.(indexin(ais_all.variable, ["2050", "2100", "2150", "2200"])), Vector(ais_all.value), dodge=dodge, color=color)
+axais = Axis(gslr[2, 1], ylabel="GMSLR from AIS (m SLR-eq)", xlabel="Year", xticks=(1:4, ["2050", "2100", "2150", "2200"]), yminorticks=IntervalsBetween(2), yminorticksvisible = true, xgridvisible=false, ygridvisible=false) 
+Makie.hlines!(axais, [0], color=:black, alpha=0.8, linewidth=1)
+Makie.boxplot!(axais, identity.(indexin(ais_all.variable, ["2050", "2100", "2150", "2200"])), Vector(ais_all.value), dodge=dodge, color=color, markersize=5)
 Makie.ylims!(axais, -1.5, 4.75)
 
-axaisnofd = Axis(gslr[2, 2], ylabel="GMSLR from AIS (without fast dynamics) (m SLR-eq)", xlabel="Year", xticks=(1:4, ["2050", "2100", "2150", "2200"]), yminorticks=IntervalsBetween(2), yminorticksvisible = true, yminorgridvisible = true) 
-Makie.boxplot!(axaisnofd, identity.(indexin(ais_all.variable, ["2050", "2100", "2150", "2200"])), Vector(ais_all.value - fd_all.value), dodge=dodge, color=color)
+axaisnofd = Axis(gslr[2, 2], ylabel="Non-FD GMSLR from AIS (m SLR-eq)", xlabel="Year", xticks=(1:4, ["2050", "2100", "2150", "2200"]), yminorticks=IntervalsBetween(2), yminorticksvisible = true, xgridvisible=false, ygridvisible=false) 
+Makie.hlines!(axaisnofd, [0], color=:black, alpha=0.8, linewidth=1)
+Makie.boxplot!(axaisnofd, identity.(indexin(ais_all.variable, ["2050", "2100", "2150", "2200"])), Vector(ais_all.value - fd_all.value), dodge=dodge, color=color, markersize=5)
 Makie.ylims!(axaisnofd, -1.5, 4.75)
 
 Legend(gslr[3, 1:2], [LineElement(color=:darkorange, linewidth=4), LineElement(color=:grey, linewidth=4), LineElement(color=:teal, linewidth=4)], ["Optimistic", "Baseline", "Pessimistic"], ["Emissions Scenario"], orientation=:horizontal, framevisible=false, tellheight=true, titleposition=:top, tellwidth=false)
 
-Label(gslr[1, 1, TopLeft()], "c", fontsize=22, font=:bold, padding = (0, 50, 20, 0), halign=:right)
-Label(gslr[2, 1, TopLeft()], "d", fontsize=22, font=:bold, padding = (0, 50, 20, 0), halign=:right)
-Label(gslr[1, 2, TopLeft()], "e", fontsize=22, font=:bold, padding = (0, 50, 20, 0), halign=:right)
-Label(gslr[2, 2, TopLeft()], "f", fontsize=22, font=:bold, padding = (0, 50, 20, 0), halign=:right)
+Label(gslr[1, 1, TopLeft()], "c", fontsize=10, font=:bold, padding = (0, 50, 20, 0), halign=:right)
+Label(gslr[2, 1, TopLeft()], "d", fontsize=10, font=:bold, padding = (0, 50, 20, 0), halign=:right)
+Label(gslr[1, 2, TopLeft()], "e", fontsize=10, font=:bold, padding = (0, 50, 20, 0), halign=:right)
+Label(gslr[2, 2, TopLeft()], "f", fontsize=10, font=:bold, padding = (0, 50, 20, 0), halign=:right)
 
 colgap!(fig.layout, 1, Relative(0.05))
 
-CairoMakie.save(joinpath(@__DIR__, "..", "figures", "ensemble_projections.png"), fig)
+save(joinpath(@__DIR__, "..", "figures", "ensemble_projections.pdf"), fig)

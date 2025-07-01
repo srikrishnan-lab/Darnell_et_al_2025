@@ -127,9 +127,9 @@ function plot_sos_contours(slr_out, year, threshold, features, key_params, steps
     hidespines!(axtop) 
     hidespines!(axright)
 
-    Label(f[1, 1, Top()], title, font=:bold,fontsize=16,
+    Label(f[1, 1, Top()], title, font=:bold,fontsize=9,
     halign = :center)    
-    Label(f[1, 1, TopLeft()], subplot_label, font=:bold,fontsize=16,
+    Label(f[1, 1, TopLeft()], subplot_label, font=:bold, fontsize=10,
     padding = (0, 5, 5, 5),
     halign = :left)    
 
@@ -155,7 +155,9 @@ CairoMakie.save("figures/feature_importance_scenarios.png", f_imp)
 
 contour_colors = cgrad(:Reds_5)
 
-f_sd = Figure(size=(1000, 400), fontsize=20)
+inch = 96
+mmx = inch / 25.4
+f_sd = Figure(size=(180mmx, 75mmx), fontsize=9)
 
 ga = f_sd[1, 1] = GridLayout()
 gb = f_sd[1, 2] = GridLayout()
@@ -163,20 +165,19 @@ gc = f_sd[1, 3] = GridLayout()
 
 plot_sos_contours(slr_default, 2100, 0.4, parameters_default,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.0025, 0.0025], [(1.5, 5), (1.5, 3.5)], ["Equilibrium Climate Sensitivity (°C)", "AIS FD Threshold (°C)"], "a", contour_colors, "0.4m in 2100"; f=ga)
 
-arrows!(ga[2, 1], [2.08, 2.12], [1.9, 1.9], [-0.5, 0.5], [0, 0])
-text!(ga[2, 1], "More\nRisk", position=(2.55, 1.6))
-text!(ga[2, 1], "Less\nRisk", position=(1.5, 1.95))
+arrows!(ga[2, 1], [2.3], [1.9], [0.5], [0])
+text!(ga[2, 1], "More\nRisk", position=(2.5, 2.0))
 
 plot_sos_contours(slr_default, 2100, 0.5, parameters_default,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.0025, 0.0025], [(1.5, 5), (1.5, 3.5)], ["Equilibrium Climate Sensitivity (°C)", "AIS FD Threshold (°C)"], "b", contour_colors, "0.5m in 2100"; f=gb)
 
 arrows!(gb[2, 1], [3.48, 3.52], [2, 2], [-0.5, 0.5], [0, 0])
-text!(gb[2, 1], "Less\nRisk", position=(2.8, 2.0))
-text!(gb[2, 1], "More\nRisk", position=(3.9, 2.0))
+text!(gb[2, 1], "Less\nRisk", position=(3.0, 2.05))
+text!(gb[2, 1], "More\nRisk", position=(3.9, 2.05))
 
 plot_sos_contours(slr_default, 2100, 0.6, parameters_default,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.0025, 0.0025], [(1.5, 5), (1.5, 3.5)], ["Equilibrium Climate Sensitivity (°C)", "AIS FD Threshold (°C)"], "c", contour_colors, "0.6m in 2100"; f=gc)
 
 arrows!(gc[2, 1], [4, 4], [2.6, 2.6], [0, 0], [-0.4, 0.4])
-text!(gc[2, 1], "Less\nRisk", position=(3.2, 2.65))
+text!(gc[2, 1], "Less\nRisk", position=(3.4, 2.5))
 text!(gc[2, 1], "More\nRisk", position=(4.1, 2.05))
 
 
@@ -188,4 +189,6 @@ elem_2060 = LineElement(color = contour_colors[1.0], linestyle = nothing, linewi
 
 leg = Legend(f_sd[2,1:3], [elem_2030, elem_2040, elem_2050, elem_2060], ["2030", "2040", "2050", "2060"], "Year Emissions Peak", orientation=:horizontal, tellwidth=false, tellheight=true, framevisible=false)
 
-CairoMakie.save(joinpath(@__DIR__, "..", "figures", "factor_map_all_scenarios.png"), f_sd)
+resize_to_layout!(f_sd)
+
+CairoMakie.save(joinpath(@__DIR__, "..", "figures", "factor_map_all_scenarios.pdf"), f_sd)

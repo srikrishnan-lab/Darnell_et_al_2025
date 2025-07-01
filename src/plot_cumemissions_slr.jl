@@ -143,7 +143,9 @@ int_lm_exceed, int_predict_exceed = fit_and_predict(gmslr_dat[gmslr_dat.exceed .
 
 # make plot
 colors = ColorSchemes.tol_bright[[6, 3, 2]]
-fig = Figure(size=(700, 300), fontsize=16, figure_padding=10)
+inch = 96
+mmx = inch / 25.4
+fig = Figure(size=(90mmx, 60mmx), fontsize=9, figure_padding=10)
 # set up layout
 ga = fig[1, 1] = GridLayout()
 gb = fig[1, 2] = GridLayout()
@@ -175,11 +177,11 @@ Makie.scatter!(ax_main2, [int_lm_all[2]], [int_predict_all[int_bp_idx, :predicti
 Makie.xlims!(ax_main2, 0, 275)
 Makie.ylims!(ax_main2, -0.04, 2.25)
 
-Label(ga[1, 1, TopLeft()], "a", fontsize=18, font=:bold, padding = (0, 50, 0, 0), halign=:right)
-Label(gb[1, 1, TopLeft()], "b", fontsize=18, font=:bold, padding = (0, 50, 0, 0), halign=:right)
+Label(ga[1, 1, TopLeft()], "a", fontsize=10, font=:bold, padding = (0, 50, 0, 0), halign=:right)
+Label(gb[1, 1, TopLeft()], "b", fontsize=10, font=:bold, padding = (0, 50, 0, 0), halign=:right)
 
-Legend(fig[2, 1:2], [lin_all, lin_nonexceed, lin_exceed], ["All", "No Fast Dynamics", "Triggered Fast Dynamics"], "Simulations", framevisible=true, orientation=:horizontal)
+Legend(fig[2, 1:2], [lin_all, lin_nonexceed, lin_exceed], ["All", "No FD", "Triggered FD"], "Simulations", framevisible=true, orientation=:horizontal)
 
 resize_to_layout!(fig)
 
-CairoMakie.save("figures/slr_temps.png", fig)
+save(joinpath(@__DIR__, "..", "figures", "slr_temps.pdf"), fig)
