@@ -18,7 +18,7 @@ using StatsPlots
 temps_ipcc = [1.5, 2.0, 3.0, 4.0, 5.0]
 quantiles = [0, 5, 50, 95, 100]
 function ipcc_quantiles(temp, q, variable)
-    ar6_path = joinpath(@__DIR__, "data", "ar6")
+    ar6_path = joinpath(dirname(@__DIR__), "data", "ar6")
     ipcc_nc = "$(ar6_path)/global/confidence_output_files/medium_confidence/tlim$(temp)win0.25/$(variable)_tlim$(temp)win0.25_medium_confidence_values.nc"
     ipcc_out = ncread(ipcc_nc, "sea_level_change")
     ipcc_q = 100 * ncread(ipcc_nc, "quantiles")
@@ -47,7 +47,7 @@ function norm_df(dat, ret_yr, norm_yrs)
 end
 
 function read_brick_output(variable, ret_yr=2100, norm_yrs=nothing)
-    brick_raw = DataFrame(CSVFiles.load(joinpath(@__DIR__, "results", "default", "$(variable).csv")))
+    brick_raw = DataFrame(CSVFiles.load(joinpath(dirname(@__DIR__), "results", "default", "$(variable).csv")))
     brick_out = norm_df(brick_raw, ret_yr, norm_yrs)
     return brick_out
 end
@@ -64,7 +64,6 @@ slr_out = read_brick_output("gmslr", 2100, slr_norm)
 temp_out = read_brick_output("temperature", 2100, temp_norm)
 
 ## make plot
-fig = Makie.Figure(size=(1200, 1200), fontsize=24)
 function plot_comparison!(brick_out, slr_ipcc_q, temps, temps_ipcc, labels, subplot_label, title; f=Figure())
     ax_gmt = Makie.Axis(f[1,1])
     ax_main = Makie.Axis(f[2,1], xlabel=labels[1], ylabel=labels[2], xgridvisible=false, ygridvisible=false)
@@ -86,9 +85,9 @@ function plot_comparison!(brick_out, slr_ipcc_q, temps, temps_ipcc, labels, subp
     colgap!(f, 1, Relative(-0.01))
     rowgap!(f, 1, Relative(-0.01))
 
-    Label(f[1, 1, Top()], title, font=:bold,fontsize=26,
+    Label(f[1, 1, Top()], title, font=:bold,fontsize=18,
     halign = :center)    
-    Label(f[1, 1, TopLeft()], subplot_label, font=:bold,fontsize=26,
+    Label(f[1, 1, TopLeft()], subplot_label, font=:bold,fontsize=18,
     padding = (0, 5, 5, 5),
     halign = :left)    
 
@@ -117,16 +116,20 @@ function plot_comparison!(brick_out, slr_ipcc_q, temps, temps_ipcc, labels, subp
     return f
 end
 
-f = Figure(size=(1200, 1200), fontsize=24)
+## make plot
+inch = 96
+mmx = inch / 25.4
+f = Figure(size=(190mmx, 190mmx), fontsize=16, figure_padding=10)
+
 ga = f[1, 1] = GridLayout()
 gb = f[1, 2] = GridLayout()
 gc = f[2, 1] = GridLayout()
 gd = f[2, 2] = GridLayout()
 
-plot_comparison!(slr_out, slr_ipcc_q, temp_out, temps_ipcc, ["Global Mean Temperature in 2100 (°C)", "Global Sea Level Anomaly in 2100 (m)"], "a)", "Global Mean Sea Level"; f=ga)
-plot_comparison!(ais_out, ais_ipcc_q, temp_out, temps_ipcc, ["Global Mean Temperature in 2100 (°C)", "SLR Contribution in 2100 (m SLE-eq)"], "b)", "Antarctic Ice Sheet"; f=gb)
-plot_comparison!(gis_out, gis_ipcc_q, temp_out, temps_ipcc, ["Global Mean Temperature in 2100 (°C)", "SLR Contribution in 2100 (m SLE-eq)"], "c)", "Greenland Ice Sheet"; f=gc)
-plot_comparison!(gsic_out, gsic_ipcc_q, temp_out, temps_ipcc, ["Global Mean Temperature in 2100 (°C)", "SLR Contribution in 2100 (m SLE-eq)"], "d)", "Glaciers"; f=gd)
+plot_comparison!(slr_out, slr_ipcc_q, temp_out, temps_ipcc, ["Global Mean Temperature in 2100 (°C)", "Global Sea Level Anomaly in 2100 (m)"], "a", "Global Mean Sea Level"; f=ga)
+plot_comparison!(ais_out, ais_ipcc_q, temp_out, temps_ipcc, ["Global Mean Temperature in 2100 (°C)", "SLR Contribution in 2100 (m SLE-eq)"], "b", "Antarctic Ice Sheet"; f=gb)
+plot_comparison!(gis_out, gis_ipcc_q, temp_out, temps_ipcc, ["Global Mean Temperature in 2100 (°C)", "SLR Contribution in 2100 (m SLE-eq)"], "c", "Greenland Ice Sheet"; f=gc)
+plot_comparison!(gsic_out, gsic_ipcc_q, temp_out, temps_ipcc, ["Global Mean Temperature in 2100 (°C)", "SLR Contribution in 2100 (m SLE-eq)"], "d", "Glaciers"; f=gd)
 
 
 # make legend

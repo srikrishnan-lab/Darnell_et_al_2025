@@ -161,4 +161,4 @@ Label(fig[2, 2, TopLeft()], "d", fontsize=20, font=:bold, padding = (0, 35, -40,
 # add legend
 leg = Legend(gemissions[3, 1:2], axcdf, orientation=:horizontal, framevisible=false, tellheight=true, titleposition=:top, tellwidth=false, nbanks=3)
 
-CairoMakie.save(joinpath(@__DIR__, "..", "figures", "scenario-emissions.png"), fig)
+CairoMakie.save(joinpath(@__DIR__, "..", "figures", "scenario-emissions.pdf"), fig)

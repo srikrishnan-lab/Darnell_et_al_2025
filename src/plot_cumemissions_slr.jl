@@ -145,7 +145,7 @@ int_lm_exceed, int_predict_exceed = fit_and_predict(gmslr_dat[gmslr_dat.exceed .
 colors = ColorSchemes.tol_bright[[6, 3, 2]]
 inch = 96
 mmx = inch / 25.4
-fig = Figure(size=(90mmx, 60mmx), fontsize=9, figure_padding=10)
+fig = Figure(size=(180mmx, 120mmx), fontsize=16, figure_padding=10)
 # set up layout
 ga = fig[1, 1] = GridLayout()
 gb = fig[1, 2] = GridLayout()
@@ -153,11 +153,13 @@ gb = fig[1, 2] = GridLayout()
 ax_main = Axis(ga[1, 1], xlabel="GMT Anomaly (°C/century)", ylabel="GMSLR (m/century)", alignmode=Inside())
 
 Makie.contour!(ax_main, dens_gmslr_2100.x, dens_gmslr_2100.y, dens_gmslr_2100.density, levels=10)
-Makie.band!(ax_main, temp_pred_range, temp_predict_all[!, :lower], temp_predict_all[!, :upper], color=colors[1], alpha=0.3, label=false)
+Makie.band!(ax_main, temp_pred_range, temp_predict_all[!, :lower], temp_predict_all[!, :upper], color=colors[1], alpha=0.4, label=false)
 Makie.lines!(ax_main, temp_pred_range, temp_predict_all[:, :prediction], color=colors[1], linewidth=2, label="All Simulations")
-Makie.band!(ax_main, temp_pred_nonexceed_range, temp_predict_nonexceed[!, :lower], temp_predict_nonexceed[!, :upper], color=colors[2], alpha=0.3, label=false)
+Makie.band!(ax_main, temp_pred_nonexceed_range, temp_predict_nonexceed[!, :lower], temp_predict_nonexceed[!, :upper], color=colors[2], alpha=0.4, label=false)
 Makie.lines!(ax_main, temp_pred_nonexceed_range, temp_predict_nonexceed[!, :prediction], color=colors[2], linewidth=2, label="Neglecting Fast Dynamics")
 Makie.scatter!(ax_main, [temp_lm_all[2]], [temp_predict_all[temp_bp_idx, :prediction]], color=colors[1], label=false)
+
+hidedecorations!(ax_main, ticks=false)
 
 Makie.xlims!(ax_main, 0, 2)
 Makie.ylims!(ax_main, -0.04, 2.5)
@@ -166,21 +168,23 @@ Makie.ylims!(ax_main, -0.04, 2.5)
 
 ax_main2 = Axis(gb[1, 1], xlabel="GMT Time-Integral (°C-yr)", ylabel="GMSLR (m)", alignmode=Inside())
 
-Makie.band!(ax_main2, int_pred_range, int_predict_all[!, :lower], int_predict_all[!, :upper], color=colors[1], alpha=0.2, label=false)
+Makie.band!(ax_main2, int_pred_range, int_predict_all[!, :lower], int_predict_all[!, :upper], color=colors[1], alpha=0.4, label=false)
 lin_all = Makie.lines!(ax_main2, int_pred_range, int_predict_all[:, :prediction], color=colors[1], linewidth=2, label="All Simulations")
-Makie.band!(ax_main2, int_pred_nonexceed_range, int_predict_nonexceed[!, :lower], int_predict_nonexceed[!, :upper], color=colors[2], alpha=0.2, label=false)
+Makie.band!(ax_main2, int_pred_nonexceed_range, int_predict_nonexceed[!, :lower], int_predict_nonexceed[!, :upper], color=colors[2], alpha=0.4, label=false)
 lin_nonexceed = Makie.lines!(ax_main2, int_pred_nonexceed_range, int_predict_nonexceed[!, :prediction], color=colors[2], linewidth=2, label="No Fast Dynamics")
-Makie.band!(ax_main2, int_pred_exceed_range, int_predict_exceed[!, :lower], int_predict_exceed[!, :upper], color=colors[3], alpha=0.2, label=false)
+Makie.band!(ax_main2, int_pred_exceed_range, int_predict_exceed[!, :lower], int_predict_exceed[!, :upper], color=colors[3], alpha=0.4, label=false)
 lin_exceed = Makie.lines!(ax_main2, int_pred_exceed_range, int_predict_exceed[!, :prediction], color=colors[3], linewidth=2, label="Triggering Fast Dynamics")
 Makie.scatter!(ax_main2, [int_lm_all[2]], [int_predict_all[int_bp_idx, :prediction]], color=colors[1], label=false)
+
+hidedecorations!(ax_main2, ticks=false)
 
 Makie.xlims!(ax_main2, 0, 275)
 Makie.ylims!(ax_main2, -0.04, 2.25)
 
-Label(ga[1, 1, TopLeft()], "a", fontsize=10, font=:bold, padding = (0, 50, 0, 0), halign=:right)
-Label(gb[1, 1, TopLeft()], "b", fontsize=10, font=:bold, padding = (0, 50, 0, 0), halign=:right)
+Label(ga[1, 1, TopLeft()], "a", fontsize=18, font=:bold, padding = (0, 50, 0, 0), halign=:right)
+Label(gb[1, 1, TopLeft()], "b", fontsize=18, font=:bold, padding = (0, 50, 0, 0), halign=:right)
 
-Legend(fig[2, 1:2], [lin_all, lin_nonexceed, lin_exceed], ["All", "No FD", "Triggered FD"], "Simulations", framevisible=true, orientation=:horizontal)
+Legend(fig[2, 1:2], [lin_all, lin_nonexceed, lin_exceed], ["All", "No Fast Dynamics", "Triggered Fast Dynamics"], "Simulations", framevisible=true, orientation=:horizontal)
 
 resize_to_layout!(fig)
 

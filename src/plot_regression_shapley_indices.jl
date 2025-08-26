@@ -71,8 +71,8 @@ shap_default = normalize_shap_groups(shap_ind_default)
 # plot indices over time
 inch = 96
 mmx = inch / 25.4
-p_shap = areaplot(yrs, Matrix(shap_default[!, Not(:group)]), xlabel="Year", ylabel="Relative Group Importance", color_palette=group_colors, guidefontsize=7, tickfontsize=6, legend=:outerbottom, label=permutedims(names(shap_default)[2:end]), legendfontsize=7, fg_color_legend=false, rightmargin=5mm)
-annotate!(p_shap, 2030, 1.05, text("a", :left, 8, "Helvetica Bold"))
+p_shap = areaplot(yrs, Matrix(shap_default[!, Not(:group)]), xlabel="Year", ylabel="Relative Group Importance", color_palette=group_colors, guidefontsize=16, tickfontsize=14, legend=:outerbottom, label=permutedims(names(shap_default)[2:end]), legendfontsize=14, fg_color_legend=false, rightmargin=5mm, topmargin=5mm, leftmargin=5mm)
+annotate!(p_shap, 2030, 1.07, text("a", :left, 18, "Helvetica Bold"))
 Plots.xticks!(p_shap, 2050:25:2200)
 Plots.xlims!(p_shap, (2050, 2200))
 Plots.ylims!(p_shap, (0, 1))
@@ -85,24 +85,24 @@ shap_pessimistic = normalize_shap_groups(shap_ind_pessimistic)
 shap_opt_diff = shap_optimistic[:, 2:end] .- shap_default[:, 2:end]
 shap_pess_diff = shap_pessimistic[:, 2:end] .- shap_default[:, 2:end]
 
-function plot_differences(shap_opt_diff, shap_pess_diff, groupname, label)
+function plot_differences(shap_opt_diff, shap_pess_diff, groupname, title, label)
     diff_mat = Matrix(hcat(shap_opt_diff[!, groupname], shap_pess_diff[!, groupname]))
-    plt = Plots.plot(yrs, diff_mat, linewidth=2, xlabel="Year", ylabel="Difference From\nBaseline", title=groupname, legend=:false, colors=[:orange, :teal], grid=false,  guidefontsize=7, tickfontsize=6, legendfontsize=7, titlefontsize=8, rightmargin=5mm, bottommargin=5mm)
-    annotate!(plt, 1950, maximum(diff_mat) + (maximum(diff_mat) - minimum(diff_mat)) / 8, text(label, :left, 8, "Helvetica Bold"))
-    xticks!(plt, 2050:50:2200)
+    plt = Plots.plot(yrs, diff_mat, linewidth=2, xlabel="Year", ylabel="Difference From\nBaseline", title=title, legend=:false, colors=[:orange, :teal], grid=false,  guidefontsize=14, tickfontsize=14, legendfontsize=14, titlefontsize=14, leftmargin=5mm, rightmargin=5mm, bottommargin=5mm, topmargin=5mm)
+    annotate!(plt, 1900, maximum(diff_mat) + (maximum(diff_mat) - minimum(diff_mat)) / 8, text(label, :left, 18, "Helvetica Bold"))
+    xticks!(plt, 2050:100:2200)
     hline!(plt, [0.0], color=:black, linestyle=:dash)
     return plt
 end
-p_emis = plot_differences(shap_opt_diff, shap_pess_diff, "Emissions", "b")
-p_clim = plot_differences(shap_opt_diff, shap_pess_diff, "Climate System", "c")
-p_ais = plot_differences(shap_opt_diff, shap_pess_diff, "Antarctic Ice Sheet", "d")
-p_gis = plot_differences(shap_opt_diff, shap_pess_diff, "Greenland Ice Sheet", "e")
-p_leg = plot((-2:-1)', (-2:-1)', lims=(0, 0.05), legendfontsize=8, legend=:bottom, fg_color_legend=false, labels=["Optimistic" "Pessimistic"], fc=[:orange :teal], frame=:none)
+p_emis = plot_differences(shap_opt_diff, shap_pess_diff, "Emissions", "Emissions", "b")
+p_clim = plot_differences(shap_opt_diff, shap_pess_diff, "Climate System", "Climate", "c")
+p_ais = plot_differences(shap_opt_diff, shap_pess_diff, "Antarctic Ice Sheet", "AIS", "d")
+p_gis = plot_differences(shap_opt_diff, shap_pess_diff, "Greenland Ice Sheet", "GIS", "e")
+p_leg = plot((-2:-1)', (-2:-1)', lims=(0, 0.05), legendfontsize=14, legend=:bottom, fg_color_legend=false, labels=["Optimistic" "Pessimistic"], fc=[:orange :teal], frame=:none)
 l = @layout [
             a{0.5w} [grid(2, 2)
                      b{0.005h}    ]
 ]
-plt = Plots.plot(p_shap, p_emis, p_clim, p_ais, p_gis, p_leg, layout=l, dpi=300, size=(180mmx, 90mmx))
+plt = Plots.plot(p_shap, p_emis, p_clim, p_ais, p_gis, p_leg, layout=l, dpi=300, size=(275mmx, 210mmx))
 
 savefig(plt, joinpath(@__DIR__, "..", "figures", "stacked-shapley-index-scenarios.pdf"))
 
@@ -110,5 +110,6 @@ savefig(plt, joinpath(@__DIR__, "..", "figures", "stacked-shapley-index-scenario
 yrlabel = repeat(["2050", "2060", "2075", "2100"], inner=ncol(shap_default)-1)
 cat = CategoricalArray(repeat(names(shap_default)[2:end], outer=4))
 levels!(cat, names(shap_default)[2:end])
-yrplt = groupedbar(yrlabel, Matrix(shap_default[[1, 3, 6, 11], 2:end])', group=cat, barposition=:dodge, xlabel="Uncertainty Group", ylabel="Normalized Shapley Value", ylims=(0, 0.6), palette=group_colors, legend=:topleft)
-savefig(yrplt, joinpath(@__DIR__, "..", "figures", "shapley-index-years.png"))
+yrplt = groupedbar(yrlabel, Matrix(shap_default[[1, 3, 6, 11], 2:end])', group=cat, barposition=:dodge, xlabel="Uncertainty Group", ylabel="Normalized Shapley Value", ylims=(0, 0.6), palette=group_colors, legend=:topleft, legendfontsize=12, guidefontsize=16, tickfontsize=16)
+Plots.plot!(yrplt, size=(600, 600))
+savefig(yrplt, joinpath(@__DIR__, "..", "figures", "shapley-index-years.pdf"))

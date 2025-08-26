@@ -10,7 +10,7 @@
 
 # load environment and packages
 import Pkg
-Pkg.activate(".")
+Pkg.activate(dirname(@__DIR__))
 Pkg.instantiate()
 
 using CSVFiles
@@ -127,9 +127,9 @@ function plot_sos_contours(slr_out, year, threshold, features, key_params, steps
     hidespines!(axtop) 
     hidespines!(axright)
 
-    Label(f[1, 1, Top()], title, font=:bold,fontsize=9,
+    Label(f[1, 1, Top()], title, font=:bold,fontsize=20,
     halign = :center)    
-    Label(f[1, 1, TopLeft()], subplot_label, font=:bold, fontsize=10,
+    Label(f[1, 1, TopLeft()], subplot_label, font=:bold, fontsize=18,
     padding = (0, 5, 5, 5),
     halign = :left)    
 
@@ -141,7 +141,10 @@ function plot_sos_contours(slr_out, year, threshold, features, key_params, steps
     return f
 end
 
-f_imp = Figure(resolution=(1000, 400), fontsize=12, figure_padding=(50, 10, 0, 30))
+# plot indices over time
+inch = 96
+mmx = inch / 25.4
+f_imp = Figure(resolution=(240mmx, 100mmx), fontsize=16, figure_padding=(50, 10, 0, 30))
 
 ga = f_imp[1, 1] 
 gb = f_imp[1, 2] 
@@ -151,13 +154,12 @@ fig_imp_default = plot_feature_importance(slr_default, 2100, 0.4, parameters_def
 fig_imp_optimistic = plot_feature_importance(slr_default, 2100, 0.5, parameters_default, "b", "0.5m in 2100"; f=gb)
 fig_imp_pessimistic = plot_feature_importance(slr_default, 2100, 0.6, parameters_default, "c", "0.6m in 2100"; f=gc)
 
-CairoMakie.save("figures/feature_importance_scenarios.png", f_imp)
+CairoMakie.save(joinpath(dirname(@__DIR__), "figures", "feature_importance_scenarios.png"), f_imp)
 
 contour_colors = cgrad(:Reds_5)
 
-inch = 96
-mmx = inch / 25.4
-f_sd = Figure(size=(180mmx, 75mmx), fontsize=9)
+
+f_sd = Figure(size=(210mmx, 100mmx), fontsize=16)
 
 ga = f_sd[1, 1] = GridLayout()
 gb = f_sd[1, 2] = GridLayout()
@@ -171,13 +173,13 @@ text!(ga[2, 1], "More\nRisk", position=(2.5, 2.0))
 plot_sos_contours(slr_default, 2100, 0.5, parameters_default,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.0025, 0.0025], [(1.5, 5), (1.5, 3.5)], ["Equilibrium Climate Sensitivity (°C)", "AIS FD Threshold (°C)"], "b", contour_colors, "0.5m in 2100"; f=gb)
 
 arrows!(gb[2, 1], [3.48, 3.52], [2, 2], [-0.5, 0.5], [0, 0])
-text!(gb[2, 1], "Less\nRisk", position=(3.0, 2.05))
+text!(gb[2, 1], "Less\nRisk", position=(2.75, 2.05))
 text!(gb[2, 1], "More\nRisk", position=(3.9, 2.05))
 
 plot_sos_contours(slr_default, 2100, 0.6, parameters_default,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.0025, 0.0025], [(1.5, 5), (1.5, 3.5)], ["Equilibrium Climate Sensitivity (°C)", "AIS FD Threshold (°C)"], "c", contour_colors, "0.6m in 2100"; f=gc)
 
 arrows!(gc[2, 1], [4, 4], [2.6, 2.6], [0, 0], [-0.4, 0.4])
-text!(gc[2, 1], "Less\nRisk", position=(3.4, 2.5))
+text!(gc[2, 1], "Less\nRisk", position=(3.125, 2.5))
 text!(gc[2, 1], "More\nRisk", position=(4.1, 2.05))
 
 
@@ -187,7 +189,7 @@ elem_2040 = LineElement(color = contour_colors[0.33], linestyle = nothing, linew
 elem_2050 = LineElement(color = contour_colors[0.67], linestyle = nothing, linewidth=4)
 elem_2060 = LineElement(color = contour_colors[1.0], linestyle = nothing, linewidth=4)
 
-leg = Legend(f_sd[2,1:3], [elem_2030, elem_2040, elem_2050, elem_2060], ["2030", "2040", "2050", "2060"], "Year Emissions Peak", orientation=:horizontal, tellwidth=false, tellheight=true, framevisible=false)
+leg = Legend(f_sd[2,1:3], [elem_2030, elem_2040, elem_2050, elem_2060], ["2030", "2040", "2050", "2060"], "Year Emissions Peak", orientation=:horizontal, tellwidth=false, tellheight=true, framevisible=false, fontsize=30)
 
 resize_to_layout!(f_sd)
 

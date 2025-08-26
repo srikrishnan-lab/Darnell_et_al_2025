@@ -113,9 +113,9 @@ function plot_sos_contours(slr_out, threshold, features, key_params, stepsize, l
     hidespines!(axtop) 
     hidespines!(axright)
 
-    Label(f[1, 1, Top()], title, font=:bold,fontsize=16,
+    Label(f[1, 1, Top()], title, font=:bold,fontsize=20,
     halign = :center)    
-    Label(f[1, 1, TopLeft()], subplot_label, font=:bold,fontsize=16,
+    Label(f[1, 1, TopLeft()], subplot_label, font=:bold,fontsize=18,
     padding = (0, 5, 5, 5),
     halign = :left)    
 
@@ -129,7 +129,9 @@ end
 
 contour_colors = cgrad(:Reds_5)
 
-f_sd = Figure(size=(1000, 400), fontsize=20)
+inch = 96
+mmx = inch / 25.4
+f_sd = Figure(size=(210mmx, 100mmx), fontsize=16)
 
 ga = f_sd[1, 1] = GridLayout()
 gb = f_sd[1, 2] = GridLayout()
@@ -137,20 +139,20 @@ gc = f_sd[1, 3] = GridLayout()
 
 plot_sos_contours(targets_ar6, 0.4, parameters_default,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.0025, 0.0025], [(1.5, 5), (1.5, 3.5)], ["Equilibrium Climate Sensitivity (°C)", "AIS FD Threshold (°C)"], "a", contour_colors, "0.4m in 2100"; f=ga)
 
-arrows!(ga[2, 1], [3.48, 3.52], [2, 2], [-0.5, 0.5], [0, 0])
-text!(ga[2, 1], "Less\nRisk", position=(2.8, 2.0))
+arrows!(ga[2, 1], [3.48, 3.52], [2, 2], [-0.5, 0.75], [0, 0])
+text!(ga[2, 1], "Less\nRisk", position=(3.0, 2.0))
 text!(ga[2, 1], "More\nRisk", position=(3.9, 2.0))
 
 plot_sos_contours(targets_ar6, 0.5, parameters_default,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.0025, 0.0025], [(1.5, 5), (1.5, 3.5)], ["Equilibrium Climate Sensitivity (°C)", "AIS FD Threshold (°C)"], "b", contour_colors, "0.5m in 2100"; f=gb)
 
 arrows!(gb[2, 1], [4.5, 4.5], [2.4, 2.4], [0, 0], [-0.4, 0.4])
-text!(gb[2, 1], "Less\nRisk", position=(3.8, 2.5))
+text!(gb[2, 1], "Less\nRisk", position=(3.6, 2.3))
 
 
 plot_sos_contours(targets_ar6, 0.6, parameters_default,  [:t_peak, :climate_sensitivity, :antarctic_temp_threshold], [0.0025, 0.0025], [(1.5, 5), (1.5, 3.5)], ["Equilibrium Climate Sensitivity (°C)", "AIS FD Threshold (°C)"], "c", contour_colors, "0.6m in 2100"; f=gc)
 
 arrows!(gc[2, 1], [4, 4], [2.7, 2.7], [0, 0], [-0.4, 0.4])
-text!(gc[2, 1], "Less\nRisk", position=(3.3, 2.75))
+text!(gc[2, 1], "Less\nRisk", position=(3.0, 2.75))
 
 
 # create legend
@@ -159,6 +161,6 @@ elem_2040 = LineElement(color = contour_colors[0.33], linestyle = nothing, linew
 elem_2050 = LineElement(color = contour_colors[0.67], linestyle = nothing, linewidth=4)
 elem_2060 = LineElement(color = contour_colors[1.0], linestyle = nothing, linewidth=4)
 
-leg = Legend(f_sd[2,1:3], [elem_2030, elem_2040, elem_2050, elem_2060], ["2030", "2040", "2050", "2060"], "Year Emissions Peak", orientation=:horizontal, tellwidth=false, tellheight=true, framevisible=false)
+leg = Legend(f_sd[2,1:3], [elem_2030, elem_2040, elem_2050, elem_2060], ["2030", "2040", "2050", "2060"], "Year Emissions Peak", orientation=:horizontal, tellwidth=false, tellheight=true, framevisible=false, fontsize=30)
 
 CairoMakie.save(joinpath(@__DIR__, "..", "figures", "factor_map_all_scenarios_ar6.png"), f_sd)

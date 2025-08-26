@@ -175,7 +175,7 @@ fd_yr_pessimistic = identity.(filter(x -> !isnothing(x), find_fd_year(fd_pessimi
 ## make plot
 inch = 96
 mmx = inch / 25.4
-fig = Figure(size=(180mmx, 120mmx), fontsize=9, figure_padding=10)
+fig = Figure(size=(210mmx, 180mmx), fontsize=16, figure_padding=10)
 
 gemissions = fig[1:2, 1] = GridLayout()
 gslr = fig[1:2, 2:3] = GridLayout()
@@ -208,20 +208,20 @@ Makie.band!(axtemp, parse.(Int64, names(temp_q_optimistic)), Vector(temp_q_optim
 Makie.lines!(axtemp, parse.(Int64, names(temp_q_pessimistic)), Vector(temp_q_pessimistic[2, :]), color=:teal, linewidth=2)
 Makie.band!(axtemp, parse.(Int64, names(temp_q_pessimistic)), Vector(temp_q_pessimistic[1, :]), Vector(temp_q_pessimistic[3, :]), color=(:teal, 0.2))
 
-Legend(gemissions[3, 1], [[LineElement(color=:black), PolyElement(color=(:black, 0.2))], cmip_legend], [["Median", "90% Interval"], cmip_df[!, :Scenario]], ["Ensemble Summary", "SSP Scenario"], vertical=false, framevisible=false, tellheight=true, nbanks=3, titleposition=:top, tellwidth=false)
+Legend(gemissions[3, 1], [[LineElement(color=:black), PolyElement(color=(:black, 0.2))], cmip_legend], [["Median", "90% Interval"], cmip_df[!, :Scenario]], ["Ensemble Summary", "SSP-RCP Scenario"], vertical=false, framevisible=false, tellheight=true, nbanks=3, titleposition=:top, tellwidth=false)
 
 
 # add dodge values for ar6 temperatures
 plt_dodge = -10.0:5.0:10.0
 ar6_temp.plt_x = ar6_temp.year + repeat(plt_dodge, outer=2)
-Makie.rangebars!(axtemp, ar6_temp.plt_x,  ar6_temp.min, ar6_temp.max, color=ar6_temp.color, linewidth=1)
-Makie.scatter!(axtemp, ar6_temp.plt_x, ar6_temp.median, color=ar6_temp.color, markersize=5)
+Makie.rangebars!(axtemp, ar6_temp.plt_x,  ar6_temp.min, ar6_temp.max, color=ar6_temp.color, linewidth=2)
+Makie.scatter!(axtemp, ar6_temp.plt_x, ar6_temp.median, color=ar6_temp.color, markersize=8)
 
 Makie.xlims!(axtemp, 2000, 2200)
 Makie.ylims!(axtemp, 0, 6)
 
-Label(gemissions[1, 1, TopLeft()], "a", fontsize=10, font=:bold, padding = (10, 50, 20, 0), halign=:right)
-Label(gemissions[2, 1, TopLeft()], "b", fontsize=10, font=:bold, padding = (10, 50, 20, 0), halign=:right)
+Label(gemissions[1, 1, TopLeft()], "a", fontsize=18, font=:bold, padding = (10, 50, 20, 0), halign=:right)
+Label(gemissions[2, 1, TopLeft()], "b", fontsize=18, font=:bold, padding = (10, 50, 20, 0), halign=:right)
 
 dodge = identity.(indexin(ais_all.scenario, ["Optimistic", "Baseline", "Pessimistic"]))
 color = [:darkorange, :darkgrey, :teal][dodge]
@@ -246,10 +246,10 @@ Makie.ylims!(axaisnofd, -1.5, 4.75)
 
 Legend(gslr[3, 1:2], [LineElement(color=:darkorange, linewidth=4), LineElement(color=:grey, linewidth=4), LineElement(color=:teal, linewidth=4)], ["Optimistic", "Baseline", "Pessimistic"], ["Emissions Scenario"], orientation=:horizontal, framevisible=false, tellheight=true, titleposition=:top, tellwidth=false)
 
-Label(gslr[1, 1, TopLeft()], "c", fontsize=10, font=:bold, padding = (0, 50, 20, 0), halign=:right)
-Label(gslr[2, 1, TopLeft()], "d", fontsize=10, font=:bold, padding = (0, 50, 20, 0), halign=:right)
-Label(gslr[1, 2, TopLeft()], "e", fontsize=10, font=:bold, padding = (0, 50, 20, 0), halign=:right)
-Label(gslr[2, 2, TopLeft()], "f", fontsize=10, font=:bold, padding = (0, 50, 20, 0), halign=:right)
+Label(gslr[1, 1, TopLeft()], "c", fontsize=18, font=:bold, padding = (0, 50, 20, 0), halign=:right)
+Label(gslr[2, 1, TopLeft()], "d", fontsize=18, font=:bold, padding = (0, 50, 20, 0), halign=:right)
+Label(gslr[1, 2, TopLeft()], "e", fontsize=18, font=:bold, padding = (0, 50, 20, 0), halign=:right)
+Label(gslr[2, 2, TopLeft()], "f", fontsize=18, font=:bold, padding = (0, 50, 20, 0), halign=:right)
 
 colgap!(fig.layout, 1, Relative(0.05))
 
