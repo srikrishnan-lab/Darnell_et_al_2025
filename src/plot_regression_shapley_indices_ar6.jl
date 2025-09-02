@@ -25,9 +25,20 @@ using Statistics # get mean function
 output_path = joinpath(@__DIR__, "..", "output", "shapley")
 
 yrs = 2050:10:2150
-group_colors = ColorSchemes.glasbey_hv_n256[1:9]
+group_colors = [
+    colorant"#CC6677", 
+    colorant"#332288", 
+    colorant"#DDCC77", 
+    colorant"#117733", 
+    colorant"#88CCEE", 
+    colorant"#882255", 
+    colorant"#44AA99", 
+    colorant"#999933", 
+    colorant"#AA4499"
+]
 
 shap_ind_ar6 = DataFrame(CSVFiles.load(joinpath(output_path, "shapley_indices_ar6.csv")))
+
 
 function normalize_shap_groups(shap_ind)
     # assign parameters to groups by subsystem
@@ -66,6 +77,12 @@ function normalize_shap_groups(shap_ind)
 end
 shap_ar6 = normalize_shap_groups(shap_ind_ar6)
 
+# plot group importance differences betweend other scenarios and default
+shap_ind_default = DataFrame(CSVFiles.load(joinpath(output_path, "shapley_indices_default.csv")))
+shap_default = normalize_shap_groups(shap_ind_default)
+shap_diff = shap_ar6[:, 2:end] .- shap_default[1:2:22, 2:end] 
+
+
 inch = 96
 mmx = inch / 25.4
 p_shap = areaplot(yrs, Matrix(shap_ar6[!, Not(:group)]), xlabel="Year", ylabel="Relative Group Importance", color_palette=group_colors, guidefontsize=16, tickfontsize=14, legend=:outerbottom, label=permutedims(names(shap_default)[2:end]), legendfontsize=14, fg_color_legend=false, rightmargin=5mm, topmargin=5mm, leftmargin=5mm)
@@ -74,10 +91,6 @@ Plots.xticks!(p_shap, 2050:25:2150)
 Plots.xlims!(p_shap, (2050, 2150))
 Plots.ylims!(p_shap, (0, 1))
 
-# plot group importance differences betweend other scenarios and default
-shap_ind_default = DataFrame(CSVFiles.load(joinpath(output_path, "shapley_indices_default.csv")))
-shap_default = normalize_shap_groups(shap_ind_default)
-shap_diff = shap_ar6[:, 2:end] .- shap_default[1:2:22, 2:end] 
 
 function plot_differences(diff_mat, groupname, title, label)
     plt = Plots.plot(yrs, diff_mat[!, groupname], linewidth=2, xlabel="Year", ylabel="Difference From\nBaseline", title=title, legend=:false, colors=[:orange, :teal], grid=false,  guidefontsize=14, tickfontsize=14, legendfontsize=14, titlefontsize=14, leftmargin=5mm, rightmargin=5mm, bottommargin=5mm, topmargin=5mm)

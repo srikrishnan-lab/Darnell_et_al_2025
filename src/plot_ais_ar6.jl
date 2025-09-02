@@ -37,13 +37,12 @@ ar6_temp = DataFrame(
     max = [1.7, 1.8, 1.8, 1.8, 1.9, 2.0, 2.2, 2.5, 2.6, 3.0, 1.8, 2.4, 3.5, 4.6, 5.7]
 )
 
-# colors selected for consistency with AR6 Fig. 9.27
-ar6_lines_927 = Dict("SSP1-1.9" => colorant"rgb( 35, 197, 226)",
-                     "SSP1-2.6" => colorant"rgb( 21, 73, 135)",
-                     "SSP2-4.5" => colorant"rgb(255, 150,  60)",
-                     "SSP3-7.0" => colorant"rgb(255,  66,  48)",
-                     "SSP5-8.5" => colorant"rgb(178,  44,  26)",
-                     "SSP5-8.5 LC" => colorant"rgb(200, 35, 200)"
+ar6_lines_927 = Dict("SSP1-1.9" => colorant"rgb( 136, 34, 85)",
+                    "SSP1-2.6" => colorant"rgb( 204, 102, 119)",
+                    "SSP2-4.5" => colorant"rgb(221, 204,  119)",
+                    "SSP3-7.0" => colorant"rgb(153,  153,  51)",
+                    "SSP5-8.5" => colorant"rgb(68,  170,  153)",
+                    "SSP5-8.5 LC" => colorant"rgb(136, 204, 238)"
 )
 # add colors to AR6 dataframe
 ar6_slr.color = [ar6_lines_927[s] for s in ar6_slr.scenario]
@@ -92,6 +91,12 @@ function compute_norm_quantiles(dat; norm_yrs=nothing, mean_yrs=nothing)
     return quantiles
 end
 
+ens_colors = [
+    colorant"rgb(51, 34, 136)", 
+    colorant"rgb(17, 119, 51)",
+    colorant"rgb(170, 68, 153)"
+    ]
+
 default_slr_q = compute_norm_quantiles(slr_default, norm_yrs=slr_norm)
 optimistic_slr_q = compute_norm_quantiles(slr_optimistic, norm_yrs=slr_norm)
 pessimistic_slr_q = compute_norm_quantiles(slr_pessimistic, norm_yrs=slr_norm)
@@ -107,12 +112,12 @@ plt_idx = indexin(plt_yrs, years)
 fig = Figure(size=(1000, 800), fontsize=20, figure_padding=10)
 ax_slr = Axis(fig[1,1:2], xlabel="Year", ylabel="Global Mean Sea Level Relative\n to 1995-2014 Mean (m)")
 # plot our scenarios
-Makie.band!(ax_slr, years[plt_idx], Vector(default_slr_q[1, plt_idx]), Vector(default_slr_q[3, plt_idx]), color=(:black, 0.2), label="Baseline Scenario")
-Makie.lines!(ax_slr, years[plt_idx], Vector(default_slr_q[2, plt_idx]), color=:black, linewidth=2, label="Baseline Scenario")
-Makie.band!(ax_slr, years[plt_idx], Vector(optimistic_slr_q[1, plt_idx]), Vector(optimistic_slr_q[3, plt_idx]), color=(:darkorange, 0.2), label="Optimistic Scenario")
-Makie.lines!(ax_slr, years[plt_idx], Vector(optimistic_slr_q[2, plt_idx]), color=:darkorange, linewidth=2, label="Optimistic Scenario")
-Makie.band!(ax_slr, years[plt_idx], Vector(pessimistic_slr_q[1, plt_idx]), Vector(pessimistic_slr_q[3, plt_idx]), color=(:teal, 0.1), label="Pessimistic Scenario")
-Makie.lines!(ax_slr, years[plt_idx], Vector(pessimistic_slr_q[2, plt_idx]), color=:teal, linewidth=2, label="Pessimistic Scenario")
+Makie.band!(ax_slr, years[plt_idx], Vector(default_slr_q[1, plt_idx]), Vector(default_slr_q[3, plt_idx]), color=(ens_colors[2], 0.2), label="Baseline Scenario")
+Makie.lines!(ax_slr, years[plt_idx], Vector(default_slr_q[2, plt_idx]), color=ens_colors[2], linewidth=2, label="Baseline Scenario")
+Makie.band!(ax_slr, years[plt_idx], Vector(optimistic_slr_q[1, plt_idx]), Vector(optimistic_slr_q[3, plt_idx]), color=(ens_colors[1], 0.2), label="Optimistic Scenario")
+Makie.lines!(ax_slr, years[plt_idx], Vector(optimistic_slr_q[2, plt_idx]), color=ens_colors[1], linewidth=2, label="Optimistic Scenario")
+Makie.band!(ax_slr, years[plt_idx], Vector(pessimistic_slr_q[1, plt_idx]), Vector(pessimistic_slr_q[3, plt_idx]), color=(ens_colors[3], 0.1), label="Pessimistic Scenario")
+Makie.lines!(ax_slr, years[plt_idx], Vector(pessimistic_slr_q[2, plt_idx]), color=ens_colors[3], linewidth=2, label="Pessimistic Scenario")
 # plot AR6 ranges
 Makie.rangebars!(ax_slr, ar6_slr.plt_x, ar6_slr.min, ar6_slr.max, color=ar6_slr.color, label=Vector(ar6_slr.scenario), linewidth=2)
 ylims!(ax_slr, (0, 2.75))
@@ -121,12 +126,12 @@ ax_temp = Axis(fig[2,1], xlabel="Year", ylabel="Temperature Anomaly Relative\n t
 # plot our scenarios
 
 # plot AR6 ranges
-Makie.rangebars!(ax_temp, [2026.5, 2046.5, 2086.5], Vector(default_temp_q[1, :]), Vector(default_temp_q[3, :]), color=:black, linewidth=2)
-Makie.scatter!(ax_temp, [2026.5, 2046.5, 2086.5], Vector(default_temp_q[2, :]), color=:black, markersize=8)
-Makie.rangebars!(ax_temp, [2027.5, 2047.5, 2087.5], Vector(optimistic_temp_q[1, :]), Vector(optimistic_temp_q[3, :]), color=:darkorange, linewidth=2)
-Makie.scatter!(ax_temp, [2027.5, 2047.5, 2087.5], Vector(optimistic_temp_q[2, :]), color=:darkorange, markersize=8)
-Makie.rangebars!(ax_temp, [2028.5, 2048.5, 2088.5], Vector(pessimistic_temp_q[1, :]), Vector(pessimistic_temp_q[3, :]), color=:teal, linewidth=2)
-Makie.scatter!(ax_temp, [2028.5, 2048.5, 2088.5], Vector(pessimistic_temp_q[2, :]), color=:teal, markersize=8)
+Makie.rangebars!(ax_temp, [2026.5, 2046.5, 2086.5], Vector(default_temp_q[1, :]), Vector(default_temp_q[3, :]), color=ens_colors[2], linewidth=2)
+Makie.scatter!(ax_temp, [2026.5, 2046.5, 2086.5], Vector(default_temp_q[2, :]), color=ens_colors[2], markersize=8)
+Makie.rangebars!(ax_temp, [2027.5, 2047.5, 2087.5], Vector(optimistic_temp_q[1, :]), Vector(optimistic_temp_q[3, :]), color=ens_colors[1], linewidth=2)
+Makie.scatter!(ax_temp, [2027.5, 2047.5, 2087.5], Vector(optimistic_temp_q[2, :]), color=ens_colors[1], markersize=8)
+Makie.rangebars!(ax_temp, [2028.5, 2048.5, 2088.5], Vector(pessimistic_temp_q[1, :]), Vector(pessimistic_temp_q[3, :]), color=ens_colors[3], linewidth=2)
+Makie.scatter!(ax_temp, [2028.5, 2048.5, 2088.5], Vector(pessimistic_temp_q[2, :]), color=ens_colors[3], markersize=8)
 Makie.rangebars!(ax_temp, ar6_temp.plt_x,  ar6_temp.min, ar6_temp.max, color=ar6_temp.color, linewidth=2)
 ylims!(ax_temp, 0, 5.75)
 
@@ -144,9 +149,9 @@ Makie.poly!(ax_temp, Point2f[(2100, 0.8), (2098, 0.95), (2098, 0.65)], color=:li
 Makie.text!(ax_temp, Point.([2030, 2050, 2090], 0.325), text=["Near-Term\n (2021-2040)", "Mid-Term\n (2041-2060)", "Far-Term\n (2081-2100)"], color=:black, align=(:center, :center), fontsize=15)
 
 # build legend
-def_leg = [LineElement(color=:black, linewidth=2), PolyElement(color=(:black, 0.2)), MarkerElement(marker=:circle, color=:black, markersize=7)]
-opt_leg = [LineElement(color=:darkorange, linewidth=2), PolyElement(color=(:darkorange, 0.2)), MarkerElement(marker=:circle, color=:darkorange, markersize=7)]
-pes_leg = [LineElement(color=:teal, linewidth=2), PolyElement(color=(:teal, 0.2)), MarkerElement(marker=:circle, color=:teal, markersize=7)]
+def_leg = [LineElement(color=ens_colors[2], linewidth=2), PolyElement(color=(ens_colors[2], 0.2)), MarkerElement(marker=:circle, color=ens_colors[2], markersize=7)]
+opt_leg = [LineElement(color=ens_colors[1], linewidth=2), PolyElement(color=(ens_colors[1], 0.2)), MarkerElement(marker=:circle, color=ens_colors[1], markersize=7)]
+pes_leg = [LineElement(color=ens_colors[3], linewidth=2), PolyElement(color=(ens_colors[3], 0.2)), MarkerElement(marker=:circle, color=ens_colors[3], markersize=7)]
 ar6_leg = Vector{LineElement}(undef, length(unique(ar6_slr.scenario)))
 for i in eachindex(unique(ar6_slr.scenario))
     idx = findfirst(ar6_slr.scenario .== unique(ar6_slr.scenario)[i])

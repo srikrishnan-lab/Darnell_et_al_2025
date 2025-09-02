@@ -25,6 +25,7 @@ using Makie
 using CairoMakie
 using LaTeXStrings
 using Measures
+using Metaheuristics
 
 include(joinpath(@__DIR__, "functions.jl")) # include functions from other scripts
 
@@ -103,7 +104,15 @@ end
 axislegend(axpdf, [leg_sim], ["Simulated Trajectory"], position=:rt)
 
 axssp = Axis(fig[1, 2], xlabel="Year", ylabel="Annual CO₂ Emissions (GtCO₂/yr)", limits=(2020, 2100, nothing, nothing))
-cmip_colors = cgrad(:Dark2_7, 7, categorical=true)
+cmip_colors = [
+    colorant"rgb( 136, 34, 85)",
+    colorant"rgb( 204, 102, 119)",
+    colorant"rgb(17, 119,  51)",
+    colorant"rgb(153,  153,  51)",
+    colorant"rgb(51, 34, 136)",
+    colorant"rgb(68,  170,  153)",
+    colorant"rgb(136, 204, 238)",
+]
 for i in axes(cmip_df, 1)
     Makie.lines!(axssp, t_ssp, sim_out[i, :], color=cmip_colors[i], linewidth=2)
     Makie.lines!(axssp, ssp_yrs, Vector(cmip_df[i, 2:end]), color=cmip_colors[i], linestyle=:dot, linewidth=2, label=cmip_df[i, :Scenario])

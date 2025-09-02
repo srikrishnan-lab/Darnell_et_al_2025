@@ -143,6 +143,12 @@ df_pessimistic = DataFrame(c)[!, 3:5]
 df_pessimistic[!, :t_peak] = trunc.(Int64, df_pessimistic[!, :t_peak])
 save(joinpath(@__DIR__, "..", "data", "emissions", "pessimistic", "parameters.csv"), df_pessimistic)
 
+ens_colors = [
+    colorant"rgb(51, 34, 136)", 
+    colorant"rgb(17, 119, 51)",
+    colorant"rgb(170, 68, 153)"
+    ]
+    
 # plot priors and scenario distributions
 fig = Figure(size=(1000, 400), fontsize=20, figure_padding=10)
 ax1 = Axis(fig[1, 1], xlabel=L"$\gamma_g$", ylabel="Probability Density", title="Baseline")
@@ -150,20 +156,20 @@ ax2 = Axis(fig[1, 2], xlabel=L"$t_\text{peak}$", ylabel="Probability Density", t
 ax3 = Axis(fig[1, 3], xlabel=L"$\gamma_d$", ylabel="Probability Density", title="Pessimistic")
 
 # first plot prior then scenario distributions
-Makie.lines!(ax1, Makie.KernelDensity.kde(rand(γ_g_pri, n_samples),bandwidth=0.002), color=:gray, label="Prior", linewidth=3)
-Makie.lines!(ax1, Makie.KernelDensity.kde(Vector(df_default[!, :γ_g]), bandwidth=0.002), color=:black, label="Baseline Scenario", linewidth=3)
-Makie.lines!(ax1, Makie.KernelDensity.kde(Vector(df_optimistic[!, :γ_g]), bandwidth=0.002), color=:darkorange, label="Optimistic Scenario", linewidth=3)
-Makie.lines!(ax1, Makie.KernelDensity.kde(Vector(df_pessimistic[!, :γ_g]), bandwidth=0.002), color=:teal, label="Pessimistic Scenario", linewidth=3)
+Makie.lines!(ax1, Makie.KernelDensity.kde(rand(γ_g_pri, n_samples),bandwidth=0.002), color=:black, label="Prior", linewidth=3)
+Makie.lines!(ax1, Makie.KernelDensity.kde(Vector(df_default[!, :γ_g]), bandwidth=0.002), color=ens_colors[2], label="Baseline Scenario", linewidth=3)
+Makie.lines!(ax1, Makie.KernelDensity.kde(Vector(df_optimistic[!, :γ_g]), bandwidth=0.002), color=ens_colors[1], label="Optimistic Scenario", linewidth=3)
+Makie.lines!(ax1, Makie.KernelDensity.kde(Vector(df_pessimistic[!, :γ_g]), bandwidth=0.002), color=ens_colors[3], label="Pessimistic Scenario", linewidth=3)
 
-Makie.lines!(ax2, Makie.KernelDensity.kde(rand(t_peak_pri, n_samples),bandwidth=2), color=:gray, label="Prior", linewidth=3)
-Makie.lines!(ax2, Makie.KernelDensity.kde(Vector(df_default[!, :t_peak]), bandwidth=2), color=:black, label="Baseline Scenario", linewidth=3)
-Makie.lines!(ax2, Makie.KernelDensity.kde(Vector(df_optimistic[!, :t_peak]), bandwidth=2), color=:darkorange, label="Optimistic Scenario", linewidth=3)
-Makie.lines!(ax2, Makie.KernelDensity.kde(Vector(df_pessimistic[!, :t_peak]), bandwidth=2), color=:teal, label="Pessimistic Scenario", linewidth=3)
+Makie.lines!(ax2, Makie.KernelDensity.kde(rand(t_peak_pri, n_samples),bandwidth=2), color=:black, label="Prior", linewidth=3)
+Makie.lines!(ax2, Makie.KernelDensity.kde(Vector(df_default[!, :t_peak]), bandwidth=2), color=ens_colors[2], label="Baseline Scenario", linewidth=3)
+Makie.lines!(ax2, Makie.KernelDensity.kde(Vector(df_optimistic[!, :t_peak]), bandwidth=2), color=ens_colors[1], label="Optimistic Scenario", linewidth=3)
+Makie.lines!(ax2, Makie.KernelDensity.kde(Vector(df_pessimistic[!, :t_peak]), bandwidth=2), color=ens_colors[3], label="Pessimistic Scenario", linewidth=3)
 
-Makie.lines!(ax3, Makie.KernelDensity.kde(rand(γ_d_pri, n_samples),bandwidth=0.01), color=:gray, label="Prior", linewidth=3)
-Makie.lines!(ax3, Makie.KernelDensity.kde(Vector(df_default[!, :γ_d]), bandwidth=0.01), color=:black, label="Baseline Scenario", linewidth=3)
-Makie.lines!(ax3, Makie.KernelDensity.kde(Vector(df_optimistic[!, :γ_d]), bandwidth=0.01), color=:darkorange, label="Optimistic Scenario", linewidth=3)
-Makie.lines!(ax3, Makie.KernelDensity.kde(Vector(df_pessimistic[!, :γ_d]), bandwidth=0.01), color=:teal, label="Pessimistic Scenario", linewidth=3)
+Makie.lines!(ax3, Makie.KernelDensity.kde(rand(γ_d_pri, n_samples),bandwidth=0.01), color=:black, label="Prior", linewidth=3)
+Makie.lines!(ax3, Makie.KernelDensity.kde(Vector(df_default[!, :γ_d]), bandwidth=0.01), color=ens_colors[2], label="Baseline Scenario", linewidth=3)
+Makie.lines!(ax3, Makie.KernelDensity.kde(Vector(df_optimistic[!, :γ_d]), bandwidth=0.01), color=ens_colors[1], label="Optimistic Scenario", linewidth=3)
+Makie.lines!(ax3, Makie.KernelDensity.kde(Vector(df_pessimistic[!, :γ_d]), bandwidth=0.01), color=ens_colors[3], label="Pessimistic Scenario", linewidth=3)
 
 Legend(fig[2, 1:3], ax1, orientation=:horizontal)
 

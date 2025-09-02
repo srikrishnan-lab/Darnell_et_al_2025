@@ -57,12 +57,12 @@ cmip_df[!, Not(:Scenario)] = cmip_df[!, Not(:Scenario)] ./ 1000
 cmip_df = cmip_df[Not(cmip_df[:, :Scenario] .== "SSP4-3.4"), :] # drop SSP4-3.4 since it doesn't show up in AR6
 cmip_df = cmip_df[Not(cmip_df[:, :Scenario] .== "SSP4-6.0"), :] # drop SSP4-6.0 since it doesn't show up in AR6
 
-ar6_lines_927 = Dict("SSP1-1.9" => colorant"rgb( 35, 197, 226)",
-                    "SSP1-2.6" => colorant"rgb( 21, 73, 135)",
-                    "SSP2-4.5" => colorant"rgb(255, 150,  60)",
-                    "SSP3-7.0" => colorant"rgb(255,  66,  48)",
-                    "SSP5-8.5" => colorant"rgb(178,  44,  26)",
-                    "SSP5-8.5 LC" => colorant"rgb(200, 35, 200)"
+ar6_lines_927 = Dict("SSP1-1.9" => colorant"rgb( 136, 34, 85)",
+                    "SSP1-2.6" => colorant"rgb( 204, 102, 119)",
+                    "SSP2-4.5" => colorant"rgb(221, 204,  119)",
+                    "SSP3-7.0" => colorant"rgb(153,  153,  51)",
+                    "SSP5-8.5" => colorant"rgb(68,  170,  153)",
+                    "SSP5-8.5 LC" => colorant"rgb(136, 204, 238)"
 )
 ar6_temp = DataFrame(
     year = repeat([2050, 2090], inner=5),
@@ -75,7 +75,11 @@ ar6_temp = DataFrame(
 cmip_df.color = [ar6_lines_927[s] for s in cmip_df.Scenario]
 ar6_temp.color = [ar6_lines_927[s] for s in ar6_temp.scenario]
 
-
+ens_colors = [
+    colorant"rgb(51, 34, 136)", 
+    colorant"rgb(17, 119, 51)",
+    colorant"rgb(170, 68, 153)"
+    ]
 
 # function to find normalize relative to a year or mean over some normalization period)
 function normalize_data!(dat, norm_yrs=nothing)
@@ -183,12 +187,12 @@ gslr = fig[1:2, 2:3] = GridLayout()
 # plot 1: emissions distribution
 axemissions = Axis(gemissions[1, 1], xlabel="Year", ylabel="CO₂ Emissions (GtCO₂/yr)", xgridvisible=false, ygridvisible=false)
 Makie.hlines!(axemissions, [0], color=:black, linewidth=1, alpha=0.8)
-leg_med = Makie.lines!(axemissions, parse.(Int64, names(emis_q_default)), Vector(emis_q_default[2, :]), color=:darkgrey, linewidth=2)
-leg_ci = Makie.band!(axemissions, parse.(Int64, names(emis_q_default)), Vector(emis_q_default[1, :]), Vector(emis_q_default[3, :]), color=(:darkgrey, 0.2))
-Makie.lines!(axemissions, parse.(Int64, names(emis_q_optimistic)), Vector(emis_q_optimistic[2, :]), color=:darkorange, linewidth=2)
-Makie.band!(axemissions, parse.(Int64, names(emis_q_optimistic)), Vector(emis_q_optimistic[1, :]), Vector(emis_q_optimistic[3, :]), color=(:darkorange, 0.2))
-Makie.lines!(axemissions, parse.(Int64, names(emis_q_pessimistic)), Vector(emis_q_pessimistic[2, :]), color=:teal, linewidth=2)
-Makie.band!(axemissions, parse.(Int64, names(emis_q_pessimistic)), Vector(emis_q_pessimistic[1, :]), Vector(emis_q_pessimistic[3, :]), color=(:teal, 0.2))
+leg_med = Makie.lines!(axemissions, parse.(Int64, names(emis_q_default)), Vector(emis_q_default[2, :]), color=ens_colors[2], linewidth=2)
+leg_ci = Makie.band!(axemissions, parse.(Int64, names(emis_q_default)), Vector(emis_q_default[1, :]), Vector(emis_q_default[3, :]), color=(ens_colors[2], 0.2))
+Makie.lines!(axemissions, parse.(Int64, names(emis_q_optimistic)), Vector(emis_q_optimistic[2, :]), color=ens_colors[1], linewidth=2)
+Makie.band!(axemissions, parse.(Int64, names(emis_q_optimistic)), Vector(emis_q_optimistic[1, :]), Vector(emis_q_optimistic[3, :]), color=(ens_colors[1], 0.2))
+Makie.lines!(axemissions, parse.(Int64, names(emis_q_pessimistic)), Vector(emis_q_pessimistic[2, :]), color=ens_colors[3], linewidth=2)
+Makie.band!(axemissions, parse.(Int64, names(emis_q_pessimistic)), Vector(emis_q_pessimistic[1, :]), Vector(emis_q_pessimistic[3, :]), color=(ens_colors[3], 0.2))
 Makie.xlims!(axemissions, 2000, 2200)
 
 # add in the SSP emissions scenarios for context
@@ -201,12 +205,12 @@ end
 
 # plot 2: Temperature distribution
 axtemp = Axis(gemissions[2, 1], ylabel="GMT Anomaly (°C)", xlabel="Year", xgridvisible=false, ygridvisible=false)
-Makie.lines!(axtemp, parse.(Int64, names(temp_q_default)), Vector(temp_q_default[2, :]), color=:darkgrey, linewidth=2)
-Makie.band!(axtemp, parse.(Int64, names(temp_q_default)), Vector(temp_q_default[1, :]), Vector(temp_q_default[3, :]), color=(:darkgrey, 0.2))
-Makie.lines!(axtemp, parse.(Int64, names(temp_q_optimistic)), Vector(temp_q_optimistic[2, :]), color=:darkorange, linewidth=2)
-Makie.band!(axtemp, parse.(Int64, names(temp_q_optimistic)), Vector(temp_q_optimistic[1, :]), Vector(temp_q_optimistic[3, :]), color=(:darkorange, 0.2))
-Makie.lines!(axtemp, parse.(Int64, names(temp_q_pessimistic)), Vector(temp_q_pessimistic[2, :]), color=:teal, linewidth=2)
-Makie.band!(axtemp, parse.(Int64, names(temp_q_pessimistic)), Vector(temp_q_pessimistic[1, :]), Vector(temp_q_pessimistic[3, :]), color=(:teal, 0.2))
+Makie.lines!(axtemp, parse.(Int64, names(temp_q_default)), Vector(temp_q_default[2, :]), color=ens_colors[2], linewidth=2)
+Makie.band!(axtemp, parse.(Int64, names(temp_q_default)), Vector(temp_q_default[1, :]), Vector(temp_q_default[3, :]), color=(ens_colors[2], 0.2))
+Makie.lines!(axtemp, parse.(Int64, names(temp_q_optimistic)), Vector(temp_q_optimistic[2, :]), color=ens_colors[1], linewidth=2)
+Makie.band!(axtemp, parse.(Int64, names(temp_q_optimistic)), Vector(temp_q_optimistic[1, :]), Vector(temp_q_optimistic[3, :]), color=(ens_colors[1], 0.2))
+Makie.lines!(axtemp, parse.(Int64, names(temp_q_pessimistic)), Vector(temp_q_pessimistic[2, :]), color=ens_colors[3], linewidth=2)
+Makie.band!(axtemp, parse.(Int64, names(temp_q_pessimistic)), Vector(temp_q_pessimistic[1, :]), Vector(temp_q_pessimistic[3, :]), color=(ens_colors[3], 0.2))
 
 Legend(gemissions[3, 1], [[LineElement(color=:black), PolyElement(color=(:black, 0.2))], cmip_legend], [["Median", "90% Interval"], cmip_df[!, :Scenario]], ["Ensemble Summary", "SSP-RCP Scenario"], vertical=false, framevisible=false, tellheight=true, nbanks=3, titleposition=:top, tellwidth=false)
 
@@ -224,27 +228,27 @@ Label(gemissions[1, 1, TopLeft()], "a", fontsize=18, font=:bold, padding = (10, 
 Label(gemissions[2, 1, TopLeft()], "b", fontsize=18, font=:bold, padding = (10, 50, 20, 0), halign=:right)
 
 dodge = identity.(indexin(ais_all.scenario, ["Optimistic", "Baseline", "Pessimistic"]))
-color = [:darkorange, :darkgrey, :teal][dodge]
+
 
 axgmsl = Axis(gslr[1, 1], ylabel="GMSL Anomaly (m)", xlabel="Year", xticks=(1:4, ["2050", "2100", "2150", "2200"]), yminorticks=IntervalsBetween(2), yminorticksvisible = true, xgridvisible=false, ygridvisible=false)
 Makie.hlines!(axgmsl, [0], color=:black, alpha=0.8, linewidth=1)
-Makie.boxplot!(axgmsl, identity.(indexin(gmslr_all.variable, ["2050", "2100", "2150", "2200"])), Vector(gmslr_all.value), dodge=dodge, color=color, markersize=5)
+Makie.boxplot!(axgmsl, identity.(indexin(gmslr_all.variable, ["2050", "2100", "2150", "2200"])), Vector(gmslr_all.value), dodge=dodge, color=ens_colors[dodge], mediancolor=:white, markersize=5)
 
 axgis = Axis(gslr[1, 2], ylabel="GMSLR from GIS (m SLR-eq)", xlabel="Year", xticks=(1:4, ["2050", "2100", "2150", "2200"]), yminorticks=IntervalsBetween(2), yminorticksvisible = true, xgridvisible=false, ygridvisible=false) 
 Makie.hlines!(axgis, [0], color=:black, alpha=0.8, linewidth=1)
-Makie.boxplot!(axgis, identity.(indexin(gis_all.variable, ["2050", "2100", "2150", "2200"])), Vector(gis_all.value), dodge=dodge, color=color, markersize=5)
+Makie.boxplot!(axgis, identity.(indexin(gis_all.variable, ["2050", "2100", "2150", "2200"])), Vector(gis_all.value), dodge=dodge, color=ens_colors[dodge], mediancolor=:white, markersize=5)
 
 axais = Axis(gslr[2, 1], ylabel="GMSLR from AIS (m SLR-eq)", xlabel="Year", xticks=(1:4, ["2050", "2100", "2150", "2200"]), yminorticks=IntervalsBetween(2), yminorticksvisible = true, xgridvisible=false, ygridvisible=false) 
 Makie.hlines!(axais, [0], color=:black, alpha=0.8, linewidth=1)
-Makie.boxplot!(axais, identity.(indexin(ais_all.variable, ["2050", "2100", "2150", "2200"])), Vector(ais_all.value), dodge=dodge, color=color, markersize=5)
+Makie.boxplot!(axais, identity.(indexin(ais_all.variable, ["2050", "2100", "2150", "2200"])), Vector(ais_all.value), dodge=dodge, color=ens_colors[dodge], mediancolor=:white, markersize=5)
 Makie.ylims!(axais, -1.5, 4.75)
 
 axaisnofd = Axis(gslr[2, 2], ylabel="Non-FD GMSLR from AIS (m SLR-eq)", xlabel="Year", xticks=(1:4, ["2050", "2100", "2150", "2200"]), yminorticks=IntervalsBetween(2), yminorticksvisible = true, xgridvisible=false, ygridvisible=false) 
 Makie.hlines!(axaisnofd, [0], color=:black, alpha=0.8, linewidth=1)
-Makie.boxplot!(axaisnofd, identity.(indexin(ais_all.variable, ["2050", "2100", "2150", "2200"])), Vector(ais_all.value - fd_all.value), dodge=dodge, color=color, markersize=5)
+Makie.boxplot!(axaisnofd, identity.(indexin(ais_all.variable, ["2050", "2100", "2150", "2200"])), Vector(ais_all.value - fd_all.value), dodge=dodge, color=ens_colors[dodge], mediancolor=:white, markersize=5)
 Makie.ylims!(axaisnofd, -1.5, 4.75)
 
-Legend(gslr[3, 1:2], [LineElement(color=:darkorange, linewidth=4), LineElement(color=:grey, linewidth=4), LineElement(color=:teal, linewidth=4)], ["Optimistic", "Baseline", "Pessimistic"], ["Emissions Scenario"], orientation=:horizontal, framevisible=false, tellheight=true, titleposition=:top, tellwidth=false)
+Legend(gslr[3, 1:2], [LineElement(color=ens_colors[1], linewidth=4), LineElement(color=ens_colors[2], linewidth=4), LineElement(color=ens_colors[3], linewidth=4)], ["Optimistic", "Baseline", "Pessimistic"], ["Emissions Scenario"], orientation=:horizontal, framevisible=false, tellheight=true, titleposition=:top, tellwidth=false)
 
 Label(gslr[1, 1, TopLeft()], "c", fontsize=18, font=:bold, padding = (0, 50, 20, 0), halign=:right)
 Label(gslr[2, 1, TopLeft()], "d", fontsize=18, font=:bold, padding = (0, 50, 20, 0), halign=:right)

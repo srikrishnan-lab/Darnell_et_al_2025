@@ -142,7 +142,7 @@ int_lm_nonexceed, int_predict_nonexceed = fit_and_predict(gmslr_dat[gmslr_dat.ex
 int_lm_exceed, int_predict_exceed = fit_and_predict(gmslr_dat[gmslr_dat.exceed .== 1, :],  int_pred_exceed_range, 5)
 
 # make plot
-colors = ColorSchemes.tol_bright[[6, 3, 2]]
+colors = [colorant"#BB5566", colorant"#DDAA33", colorant"#004488"]
 inch = 96
 mmx = inch / 25.4
 fig = Figure(size=(180mmx, 120mmx), fontsize=16, figure_padding=10)
@@ -153,13 +153,13 @@ gb = fig[1, 2] = GridLayout()
 ax_main = Axis(ga[1, 1], xlabel="GMT Anomaly (°C/century)", ylabel="GMSLR (m/century)", alignmode=Inside())
 
 Makie.contour!(ax_main, dens_gmslr_2100.x, dens_gmslr_2100.y, dens_gmslr_2100.density, levels=10)
-Makie.band!(ax_main, temp_pred_range, temp_predict_all[!, :lower], temp_predict_all[!, :upper], color=colors[1], alpha=0.4, label=false)
+Makie.band!(ax_main, temp_pred_range, temp_predict_all[!, :lower], temp_predict_all[!, :upper], color=colors[1], alpha=0.3, label=false)
 Makie.lines!(ax_main, temp_pred_range, temp_predict_all[:, :prediction], color=colors[1], linewidth=2, label="All Simulations")
-Makie.band!(ax_main, temp_pred_nonexceed_range, temp_predict_nonexceed[!, :lower], temp_predict_nonexceed[!, :upper], color=colors[2], alpha=0.4, label=false)
+Makie.band!(ax_main, temp_pred_nonexceed_range, temp_predict_nonexceed[!, :lower], temp_predict_nonexceed[!, :upper], color=colors[2], alpha=0.3, label=false)
 Makie.lines!(ax_main, temp_pred_nonexceed_range, temp_predict_nonexceed[!, :prediction], color=colors[2], linewidth=2, label="Neglecting Fast Dynamics")
 Makie.scatter!(ax_main, [temp_lm_all[2]], [temp_predict_all[temp_bp_idx, :prediction]], color=colors[1], label=false)
 
-hidedecorations!(ax_main, ticks=false)
+hidedecorations!(ax_main, ticks=false, ticklabels=false, label=false, minorticks=false)
 
 Makie.xlims!(ax_main, 0, 2)
 Makie.ylims!(ax_main, -0.04, 2.5)
@@ -168,15 +168,15 @@ Makie.ylims!(ax_main, -0.04, 2.5)
 
 ax_main2 = Axis(gb[1, 1], xlabel="GMT Time-Integral (°C-yr)", ylabel="GMSLR (m)", alignmode=Inside())
 
-Makie.band!(ax_main2, int_pred_range, int_predict_all[!, :lower], int_predict_all[!, :upper], color=colors[1], alpha=0.4, label=false)
+Makie.band!(ax_main2, int_pred_range, int_predict_all[!, :lower], int_predict_all[!, :upper], color=colors[1], alpha=0.3, label=false)
 lin_all = Makie.lines!(ax_main2, int_pred_range, int_predict_all[:, :prediction], color=colors[1], linewidth=2, label="All Simulations")
-Makie.band!(ax_main2, int_pred_nonexceed_range, int_predict_nonexceed[!, :lower], int_predict_nonexceed[!, :upper], color=colors[2], alpha=0.4, label=false)
+Makie.band!(ax_main2, int_pred_nonexceed_range, int_predict_nonexceed[!, :lower], int_predict_nonexceed[!, :upper], color=colors[2], alpha=0.3, label=false)
 lin_nonexceed = Makie.lines!(ax_main2, int_pred_nonexceed_range, int_predict_nonexceed[!, :prediction], color=colors[2], linewidth=2, label="No Fast Dynamics")
-Makie.band!(ax_main2, int_pred_exceed_range, int_predict_exceed[!, :lower], int_predict_exceed[!, :upper], color=colors[3], alpha=0.4, label=false)
+Makie.band!(ax_main2, int_pred_exceed_range, int_predict_exceed[!, :lower], int_predict_exceed[!, :upper], color=colors[3], alpha=0.3, label=false)
 lin_exceed = Makie.lines!(ax_main2, int_pred_exceed_range, int_predict_exceed[!, :prediction], color=colors[3], linewidth=2, label="Triggering Fast Dynamics")
 Makie.scatter!(ax_main2, [int_lm_all[2]], [int_predict_all[int_bp_idx, :prediction]], color=colors[1], label=false)
 
-hidedecorations!(ax_main2, ticks=false)
+hidedecorations!(ax_main2, ticks=false, ticklabels=false, label=false, minorticks=false)
 
 Makie.xlims!(ax_main2, 0, 275)
 Makie.ylims!(ax_main2, -0.04, 2.25)

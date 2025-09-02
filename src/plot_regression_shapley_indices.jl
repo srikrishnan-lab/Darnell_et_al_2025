@@ -27,7 +27,17 @@ using CategoricalArrays
 output_path = joinpath(@__DIR__, "..", "output", "shapley")
 
 yrs = 2050:5:2200
-group_colors = ColorSchemes.glasbey_hv_n256[1:9]
+group_colors = [
+    colorant"#CC6677", 
+    colorant"#332288", 
+    colorant"#DDCC77", 
+    colorant"#117733", 
+    colorant"#88CCEE", 
+    colorant"#882255", 
+    colorant"#44AA99", 
+    colorant"#999933", 
+    colorant"#AA4499"
+]
 
 shap_ind_default = DataFrame(CSVFiles.load(joinpath(output_path, "shapley_indices_default.csv")))
 

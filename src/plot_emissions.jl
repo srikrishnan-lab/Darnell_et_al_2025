@@ -91,16 +91,30 @@ cum_default = calc_cum_emissions(gtco2_default, t, 2022, 2100)
 cum_optimistic =  calc_cum_emissions(gtco2_optimistic, t, 2022, 2100)
 cum_pessimistic = calc_cum_emissions(gtco2_pessimistic, t, 2022, 2100)
 
+ens_colors = [
+    colorant"rgb(51, 34, 136)", 
+    colorant"rgb(17, 119, 51)",
+    colorant"rgb(170, 68, 153)"
+    ]
+
 # plot resulting cumulative distributions
 fig = Figure(size=(800, 600), fontsize=16, figure_padding=20)
 gemissions = fig[1:3, 1:2] = GridLayout()
 
 axpdf = Axis(gemissions[1, 1], xlabel="Cumulative CO₂ Emissions, 2022--2018 (GtCO₂)", ylabel="Density")
-Makie.lines!(axpdf, Makie.KernelDensity.kde(cum_default, bandwidth=200), color=:black, linewidth=3, label="Default Scenario")
-Makie.lines!(axpdf, Makie.KernelDensity.kde(cum_optimistic, bandwidth=200), color=:darkorange, linewidth=3, label="Optimistic Scenario")
-Makie.lines!(axpdf, Makie.KernelDensity.kde(cum_pessimistic, bandwidth=200), color=:teal, linewidth=3, label="Pessimistic Scenario")
-Makie.vlines!(axpdf, [1220], linestyle=:dash, label="2°C Budget (50%)", color=:green, linewidth=2)
-cmip_colors = cgrad(:Dark2_7, 7, categorical=true)
+Makie.lines!(axpdf, Makie.KernelDensity.kde(cum_default, bandwidth=200), color=ens_colors[2], linewidth=3, label="Default Scenario")
+Makie.lines!(axpdf, Makie.KernelDensity.kde(cum_optimistic, bandwidth=200), color=ens_colors[1], linewidth=3, label="Optimistic Scenario")
+Makie.lines!(axpdf, Makie.KernelDensity.kde(cum_pessimistic, bandwidth=200), color=ens_colors[3], linewidth=3, label="Pessimistic Scenario")
+Makie.vlines!(axpdf, [1220], linestyle=:dash, label="2°C Budget (50%)", color=:black, linewidth=2)
+cmip_colors = [
+    colorant"rgb( 136, 34, 85)",
+    colorant"rgb( 204, 102, 119)",
+    colorant"rgb(255, 112,  67)",
+    colorant"rgb(153,  153,  51)",
+    colorant"rgb(51, 34, 136)",
+    colorant"rgb(68,  170,  153)",
+    colorant"rgb(136, 204, 238)",
+]
 for i = 1:nrow(cum_ssp)
     Makie.vlines!(axpdf, [cum_ssp[i, :emissions]], color=cmip_colors[i], linestyle=:dot, label=cum_ssp[i, :scenario], linewidth=2)
 end
@@ -112,9 +126,9 @@ optimistic_range = 0:maximum(cum_optimistic)
 pessimistic_cdf = ecdf(cum_pessimistic)
 pessimistic_range = 0:maximum(cum_pessimistic)
 axcdf = Axis(gemissions[1, 2], xlabel="Cumulative CO₂ Emissions, 2022--2018 (GtCO₂)", ylabel="Cumulative Probability")
-Makie.lines!(axcdf, default_range, default_cdf.(default_range), label="Baseline Scenario", color=:black, linewidth=3)
-Makie.lines!(axcdf, optimistic_range, optimistic_cdf.(optimistic_range), label="Optimistic Scenario", color=:darkorange, linewidth=3)
-Makie.lines!(axcdf, pessimistic_range, pessimistic_cdf.(pessimistic_range), label="Pessimistic Scenario", color=:teal, linewidth=3)
+Makie.lines!(axcdf, default_range, default_cdf.(default_range), label="Baseline Scenario", color=ens_colors[2], linewidth=3)
+Makie.lines!(axcdf, optimistic_range, optimistic_cdf.(optimistic_range), label="Optimistic Scenario", color=ens_colors[1], linewidth=3)
+Makie.lines!(axcdf, pessimistic_range, pessimistic_cdf.(pessimistic_range), label="Pessimistic Scenario", color=ens_colors[3], linewidth=3)
 Makie.vlines!(axcdf, [1220], linestyle=:dash, label="2°C Budget (50%)", color=:green, linewidth=2)
 for i = 1:nrow(cum_ssp)
     Makie.vlines!(axcdf, [cum_ssp[i, :emissions]], color=cmip_colors[i], linestyle=:dot, label=cum_ssp[i, :scenario], linewidth=2)
@@ -122,15 +136,14 @@ end
 
 # Time trajectories of emissions
 axemissions = Axis(gemissions[2, 1], xlabel="Year", ylabel="CO₂ Emissions (Gt CO₂/yr)")
-leg_med = Makie.lines!(axemissions, 2000:2200, q_default[2, indexin(2000:2200, t)], color=:black, linewidth=3)
-leg_ci = Makie.band!(axemissions, 2000:2200, q_default[1, indexin(2000:2200, t)], q_default[3, indexin(2000:2200, t)], color=(:black, 0.1))
-Makie.lines!(axemissions, 2000:2200, q_optimistic[2, indexin(2000:2200, t)], color=:darkorange2, linewidth=3)
-Makie.band!(axemissions, 2000:2200, q_optimistic[1, indexin(2000:2200, t)], q_optimistic[3, indexin(2000:2200, t)], color=(:darkorange2, 0.1))
-Makie.lines!(axemissions, 2000:2200, q_pessimistic[2, indexin(2000:2200, t)], color=:teal, linewidth=3)
-Makie.band!(axemissions, 2000:2200, q_pessimistic[1, indexin(2000:2200, t)], q_pessimistic[3, indexin(2000:2200, t)], color=(:teal, 0.1))
+leg_med = Makie.lines!(axemissions, 2000:2200, q_default[2, indexin(2000:2200, t)], color=ens_colors[2], linewidth=3)
+leg_ci = Makie.band!(axemissions, 2000:2200, q_default[1, indexin(2000:2200, t)], q_default[3, indexin(2000:2200, t)], color=(ens_colors[2], 0.1))
+Makie.lines!(axemissions, 2000:2200, q_optimistic[2, indexin(2000:2200, t)], color=ens_colors[1], linewidth=3)
+Makie.band!(axemissions, 2000:2200, q_optimistic[1, indexin(2000:2200, t)], q_optimistic[3, indexin(2000:2200, t)], color=(ens_colors[1], 0.1))
+Makie.lines!(axemissions, 2000:2200, q_pessimistic[2, indexin(2000:2200, t)], color=ens_colors[3], linewidth=3)
+Makie.band!(axemissions, 2000:2200, q_pessimistic[1, indexin(2000:2200, t)], q_pessimistic[3, indexin(2000:2200, t)], color=(ens_colors[3], 0.1))
 # add in the SSP emissions scenarios for context
 cmip_yrs = parse.(Float64, string.(names(cmip_df[!, Not(:Scenario)])))
-cmip_colors = cgrad(:Dark2_7, 7, categorical=true)
 for i = 1:nrow(cmip_df)
     Makie.lines!(axemissions, cmip_yrs, Vector(cmip_df[i, Not(:Scenario)]), color=cmip_colors[i], linestyle=:dash, linewidth=2)
 end
@@ -143,9 +156,9 @@ optimistic_range = 0:maximum(gtco2_optimistic[:, findfirst(==(2100), t)])
 pessimistic_cdf = ecdf(gtco2_pessimistic[:, findfirst(==(2100), t)])
 pessimistic_range = 0:maximum(gtco2_pessimistic[:, findfirst(==(2100), t)])
 ax2100 = Axis(gemissions[2, 2], xlabel="CO₂ Emissions in 2100 (GtCO₂/yr)", ylabel="Cumulative Probability")
-Makie.lines!(ax2100, default_range, default_cdf.(default_range), label="Baseline Scenario", color=:black, linewidth=3)
-Makie.lines!(ax2100, optimistic_range, optimistic_cdf.(optimistic_range), label="Optimistic Scenario", color=:darkorange, linewidth=3)
-Makie.lines!(ax2100, pessimistic_range, pessimistic_cdf.(pessimistic_range), label="Pessimistic Scenario", color=:teal, linewidth=3)
+Makie.lines!(ax2100, default_range, default_cdf.(default_range), label="Baseline Scenario", color=ens_colors[2], linewidth=3)
+Makie.lines!(ax2100, optimistic_range, optimistic_cdf.(optimistic_range), label="Optimistic Scenario", color=ens_colors[1], linewidth=3)
+Makie.lines!(ax2100, pessimistic_range, pessimistic_cdf.(pessimistic_range), label="Pessimistic Scenario", color=ens_colors[3], linewidth=3)
 for i = 1:nrow(cmip_df)
     Makie.vlines!(ax2100, [cmip_df[i, end]], color=cmip_colors[i], linestyle=:dot, label=cmip_df[i, end], linewidth=2)
 end
